@@ -1,0 +1,7 @@
+- Download Docker
+- From terminal go to parent folder of notebooks folder
+- From terminal "docker-compose build"
+- From terminale "docker-compose up"
+- open browser
+- go to localhost
+- navigate

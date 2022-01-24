@@ -1,0 +1,9 @@
+version: '3'
+services:
+  notebook:
+    build: .
+    image: run_rdkit_conda
+    ports:
+      - "8888:8888"
+    volumes: 
+      - $PWD/code/:/my_data
