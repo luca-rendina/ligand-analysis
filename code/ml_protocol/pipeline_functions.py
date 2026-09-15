@@ -25,9 +25,6 @@ from IPython.display import Image
 
 import pydotplus
 
-import oddt
-from oddt.fingerprints import InteractionFingerprint, PLEC, SPLIF, ECFP
-
 import joblib
 import json
 
@@ -40,6 +37,8 @@ DATA_folder = "DATAS/"
 output_folder = "ROC/"
 
 def preprocessing(uniprot_id, pdb_id):
+    import oddt
+    from oddt.fingerprints import InteractionFingerprint, PLEC, SPLIF, ECFP
 
     file_agonist = [file for p in pattern_agonist for file in glob.glob(DATA_folder+"Ligands/"+pdb_id+"*"+p+"*best.sdf")]
     file_antagonist = [file for p in pattern_antagonist for file in glob.glob(DATA_folder+"Ligands/"+pdb_id+"*"+p+"*best.sdf")]
@@ -106,9 +105,19 @@ def save_score(cm_ensemble, uniprot_id, pdb_id):
     return name_file
 
 def save_roc(classifiers_normalized, TEST, TEST_LABELS, uniprot_id, pdb_id):
+    """Plot continuous scores for class 1 (antagonist), as in the original ROC."""
     pred_prob = []
     for m, cm in classifiers_normalized:
-        pred_prob.append([m.__class__.__name__, m.predict(TEST)])
+        if hasattr(m, "predict_proba"):
+            positive_column = list(m.classes_).index(1)
+            scores = m.predict_proba(TEST)[:, positive_column]
+        elif hasattr(m, "decision_function"):
+            scores = m.decision_function(TEST)
+            if m.classes_[1] != 1:
+                scores = -scores
+        else:
+            raise ValueError("ROC requires predict_proba or decision_function.")
+        pred_prob.append([m.__class__.__name__, scores])
 
     # roc curve for models
     info = []
@@ -126,7 +135,7 @@ def save_roc(classifiers_normalized, TEST, TEST_LABELS, uniprot_id, pdb_id):
     
     plt.clf()
     
-    plt.style.use('seaborn')
+    plt.style.use('seaborn-v0_8' if 'seaborn-v0_8' in plt.style.available else 'seaborn')
     # plot roc curves
     for n, i,score  in info:
         plt.plot(i[0], i[1], linestyle='--', label=n+' (auc %0.2f)' % score)
