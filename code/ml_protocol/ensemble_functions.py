@@ -85,7 +85,11 @@ class ensemble_model():
         
     """ Leave one out to check the accuracy of the different models in ClassifierList """
         
-    def model_fit_leaveOneOut(self, TRAIN, TRAIN_LABELS, norm = True):
+    def model_fit_leaveOneOut(self, TRAIN, TRAIN_LABELS, norm = False):
+        """Return fully fitted models and out-of-fold confusion counts.
+
+        Use raw counts for scoring and voting; norm=True is for display only.
+        """
         #LIST OF CLASSIFIERS
         classifiers = []
         for c, v in self.ClassifierList:
@@ -105,11 +109,11 @@ class ensemble_model():
 
                 c = c.fit(TRAIN[idx], TRAIN_LABELS[idx])
 
-                p = c.predict(TRAIN[i].reshape(1, -1))
-                j = int(TRAIN_LABELS[i])
+                p = int(c.predict(TRAIN[i])[0])
+                j = int(TRAIN_LABELS[i[0]])
                 cm[j][p] += 1
 
-            classifiers_with_cm.append([c, cm])
+            classifiers_with_cm.append([c.fit(TRAIN, TRAIN_LABELS), cm])
 
         if norm:
             #normalize data of confusion matrix
@@ -117,7 +121,8 @@ class ensemble_model():
             for c, cm in classifiers_with_cm:
                 classifiers_normalized.append([c, normalize_cm(cm)])
 
-        return classifiers_normalized
+            return classifiers_normalized
+        return classifiers_with_cm
 
     """ Filtering the models returned from previous method given treshold and metric """
 
@@ -143,7 +148,7 @@ class ensemble_model():
         if(len(idx) == 0): #check if there are no classifiers that satisfy the treshold
             return np.array([])
         
-        return np.array(classifiers_normalized)[idx]
+        return np.array(classifiers_normalized, dtype=object)[idx]
 
     """ fitting the TRAINING data to the models """
 
@@ -158,17 +163,23 @@ class ensemble_model():
     """ predicting by ensemble voting (sum the values and get the higher one)"""    
 
     def predict_ensemble(self, ensemble_model, TEST, TEST_LABELS):
+        """Vote using P(true class | prediction) from raw validation counts.
+
+        An unseen predicted class gets a hard vote; ties select class 0.
+        """
 
         #TESTING with creation of confusion matrix
         cm_ensemble = [[0,0],[0,0]]
         if(len(ensemble_model) == 0): #if there are no classifier on the ensemble model
-            return cm_ensemble
+            raise ValueError("Cannot predict with an empty ensemble.")
         
         for i in range(0, len(TEST)):
             target_cm = []
             for m, cm in ensemble_model:
-                idx = m.predict(TEST[i].reshape(1, -1))
-                target_cm.append(cm[idx])
+                idx = int(m.predict(TEST[i].reshape(1, -1))[0])
+                counts = np.asarray(cm, dtype=float)[:, idx]
+                total = counts.sum()
+                target_cm.append(counts / total if total else np.eye(2)[idx])
             winner = np.argmax(sum(target_cm))
             cm_ensemble[TEST_LABELS[i]][winner] += 1
         return cm_ensemble
