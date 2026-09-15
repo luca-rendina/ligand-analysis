@@ -50,7 +50,7 @@ def normalize_cm(cm, fix=2):
     for i in range(0, n_classes):
         tot = sum(cm[i])
         for j in range(0, n_classes):
-            cm[i][j] = round(cm[i][j] / tot, fix)
+            cm[i][j] = round(div0(cm[i][j], tot), fix)
     return cm
 
 def mysort(e):
@@ -62,23 +62,23 @@ def div0(n, d):
 def accuracy(cm): #TP + TN / (TP + TN + FP + FN)
     return(div0((cm[0][0] + cm[1][1]), (sum(cm[0]) + sum(cm[1]))))
 
-def sensitivity(cm): #TP[00]o[11] / TP[00]o[11] + FN[10]o[01] 
+def sensitivity(cm): # Per-class recall; rows=true, columns=predicted.
     sensitivity = np.array([])
     for i in range(len(cm)):
-        sensitivity = np.append(sensitivity, [div0(cm[i][i], sum([e[i] for e in cm]))])
+        sensitivity = np.append(sensitivity, [div0(cm[i][i], sum(cm[i]))])
     return(sensitivity)
     
 def fp_rate(cm): #FP / FP + TN
-    return(div0(cm[0][1], sum([e[1] for e in cm])))
+    return(div0(cm[1][0], sum(cm[1])))
 
 def fn_rate(cm): #FN / FN + TP
-    return(div0(cm[1][0], sum([e[0] for e in cm])))
+    return(div0(cm[0][1], sum(cm[0])))
     
 def tn_rate(cm): #TN / TN + FP
-    return(div0(cm[1][1], sum([e[1] for e in cm])))
+    return(div0(cm[1][1], sum(cm[1])))
     
-def precision(cm): #TP[00] / TP[00] + FP[01]
-    return(div0(cm[0][0], sum(cm[0])))
+def precision(cm): # Class 0 is positive: TP[00] / (TP[00] + FP[10]).
+    return(div0(cm[0][0], sum([e[0] for e in cm])))
     
 def f1_score(cm): #2*(precision*sensitivity / precision+sensitivity)
     scores = [precision(cm), sensitivity(cm)[0]]
@@ -96,12 +96,11 @@ def matthews_correlation(cm):
     
 
 def measure(target, cm):
-    
-    #cm = {"TP":00, "FP":01, 
-    #      "FN":10, "TN":11} class 0
-    
-    #cm = {"TN":00, "FN":01, 
-    #      "FP":10, "TP":11} class 1
+    """Score raw confusion counts with true rows and predicted columns.
+
+    Class 0 (agonist) is positive: [[TP, FN], [FP, TN]]. Undefined
+    ratios return zero; balanced accuracy averages both class recalls.
+    """
 
     scores = {"sensitivity": sensitivity(cm)[0],
              "fp_rate": fp_rate(cm),
