@@ -56,7 +56,7 @@ podman run --rm -v "${PWD}:/work:ro" -w /work -e PYTHONPATH=code/ml_protocol lig
 
 Removed (still in the Git history):
 - `Dockerfile`, `docker-compose.yml` and `readme.txt`: the original thesis environment with OpenEye, replaced by `containers/`.
-- The `code/ml_protocol/utility_functions.py` and `ensemble_functions.py` shims. `pipeline_functions.py` and the tests now import `ligand_analysis.legacy` directly. `code_test/Test Tensorflow.ipynb` still imports the removed modules; update its first cell before running it.
+- The `code/ml_protocol/utility_functions.py` and `ensemble_functions.py` shims. `pipeline_functions.py`, `code_test/Test Tensorflow.ipynb` and the tests now import `ligand_analysis.legacy` directly.
 
 Kept: `code/ml_protocol/pipeline_functions.py` and the notebooks. Their preprocessing still labels ligands by filename and is replaced in M2/M3.
 
