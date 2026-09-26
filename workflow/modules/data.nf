@@ -16,7 +16,7 @@ process FETCH {
 
     script:
     """
-    ligand-analysis fetch ${manifest} --snapshot-dir ${name}
+    ligand-analysis fetch ${manifest} --snapshot-dir '${name}'
     """
 }
 

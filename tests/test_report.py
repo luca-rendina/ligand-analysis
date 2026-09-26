@@ -122,6 +122,11 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("redocking RMSD 4.2 A exceeds 2.0 A", err)
         self.assertIn("[failed]", (self.root / "report" / "report.html").read_text(encoding="utf-8"))
+        # The workflow records the failure (exit 0) so the report is published, then fails the run itself.
+        code, _, err = self.run_cli(*self.arguments(), "--record-failure")
+        self.assertEqual(code, 0, err)
+        report = json.loads((self.root / "report" / "report.json").read_text(encoding="utf-8"))
+        self.assertEqual((report["status"], len(report["problems"])), ("failed", 1))
 
 
 if __name__ == "__main__":
