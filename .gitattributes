@@ -1,0 +1,6 @@
+# Files read by Linux tools inside containers keep LF endings in Windows checkouts.
+Containerfile text eol=lf
+*.lock text eol=lf
+*.sh text eol=lf
+# Tests compare curated tables byte for byte with fresh output.
+data/curated/** text eol=lf

@@ -1,0 +1,9 @@
+# Data-versioning tools (DVC and Git). Build from linux-64.lock, not from this file;
+# regenerate the lock with the command in README.md.
+name: ligand-tools
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - dvc
+  - git

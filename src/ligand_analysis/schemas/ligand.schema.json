@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ligand row",
+  "description": "GtoPdb ligand record with its structure identity check. Receptor independent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ligand_id", "gtopdb_ligand_id", "name", "ligand_type", "approved", "withdrawn", "labelled",
+               "radioactive", "identity_status"],
+  "properties": {
+    "ligand_id": {"type": "string", "pattern": "^iuphar\\.ligand:[0-9]+$"},
+    "gtopdb_ligand_id": {"type": "integer", "minimum": 1},
+    "name": {"type": "string"},
+    "ligand_type": {"type": "string"},
+    "approved": {"type": "boolean"},
+    "withdrawn": {"type": "boolean"},
+    "labelled": {"type": "boolean"},
+    "radioactive": {"type": "boolean"},
+    "smiles": {"type": ["string", "null"], "minLength": 1},
+    "inchikey": {"type": ["string", "null"], "minLength": 1, "description": "As published by GtoPdb; may be invalid, see identity_status."},
+    "connectivity_key": {"type": ["string", "null"], "pattern": "^[A-Z]{14}$"},
+    "pubchem_cid": {"type": ["integer", "null"], "minimum": 1},
+    "pubchem_inchikey": {"type": ["string", "null"], "minLength": 1},
+    "chembl_id": {"type": ["string", "null"], "minLength": 1},
+    "identity_status": {"type": "string", "enum": ["verified", "unverified", "mismatch", "missing_structure", "invalid_inchikey"]}
+  }
+}

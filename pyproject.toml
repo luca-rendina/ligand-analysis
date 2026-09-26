@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ligand-analysis"
+version = "0.1.0"
+description = "Reproducible local workflows for GPCR agonist/antagonist ligand analysis."
+readme = "README.md"
+requires-python = ">=3.10"
+# Versions are pinned by the container lockfiles in containers/.
+dependencies = [
+    "jsonschema",
+    "numpy",
+    "pandas",
+    "pyyaml",
+    "scikit-learn",
+]
+
+[project.scripts]
+ligand-analysis = "ligand_analysis.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ligand_analysis = ["schemas/*.json"]
+
+[tool.ruff]
+line-length = 120
+src = ["src", "code/ml_protocol"]
+# Legacy thesis code keeps its original style.
+extend-exclude = ["code", "src/ligand_analysis/legacy"]
+
+[tool.ruff.lint]
+extend-select = ["B", "N", "SIM"]
+# Windows bind mounts report every file as executable.
+ignore = ["EXE002"]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true

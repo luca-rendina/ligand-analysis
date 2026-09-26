@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Source snapshot index row",
+  "description": "One downloaded source object: where it came from, when, and its checksum.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source_id", "url", "sha256", "bytes", "media_type", "retrieved_utc"],
+  "properties": {
+    "source_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "url": {"type": "string", "pattern": "^https://"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "bytes": {"type": "integer", "minimum": 0},
+    "media_type": {"type": "string"},
+    "retrieved_utc": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\+00:00$"}
+  }
+}

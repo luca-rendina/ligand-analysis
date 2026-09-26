@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from sklearn import metrics
 
-import utility_functions as utility
+from ligand_analysis.legacy import utility_functions as utility
 
 
 class MetricTests(unittest.TestCase):

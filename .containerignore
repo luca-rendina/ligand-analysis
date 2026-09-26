@@ -1,0 +1,9 @@
+# Allowlist: only package sources and container specs enter image build contexts.
+# Data, caches, run outputs, Git metadata and local credentials stay out of image layers.
+*
+!pyproject.toml
+!README.md
+!src/
+!containers/
+**/__pycache__
+**/*.pyc

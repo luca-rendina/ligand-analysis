@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.ipynb_checkpoints/
+
+# Local data directory (mount at /data): caches, work files and run outputs.
+data/local/
+
+# Local credentials and machine-specific settings.
+.env
+*.env
+.secrets/
+
+# Outputs of the legacy notebooks.
+code/ml_protocol/DATA*/
+code/ml_protocol/ROC/

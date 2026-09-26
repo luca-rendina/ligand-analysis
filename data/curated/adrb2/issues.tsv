@@ -1,0 +1,6 @@
+severity	category	issue_type	subject_id	related_ids	details
+error	ligand	missing_structure	iuphar.ligand:566		GtoPdb has no SMILES or InChIKey
+warning	annotation	ambiguous_labels	iuphar.ligand:547	gtopdb:8f4312ba3f5b3c3a|gtopdb:e1213596286fb7e6|gtopdb:ee0ee54cd1fce772|gtopdb:f0a72d65afffb2c0	mapped and unmapped terms: Agonist / Partial agonist; Antagonist / Antagonist
+warning	annotation	ambiguous_labels	iuphar.ligand:7207	gtopdb:1892941f5b7066c6|gtopdb:80dcba62baa88856|gtopdb:ed245631585e0252	mapped and unmapped terms: Agonist / Partial agonist; Antagonist / Antagonist
+warning	annotation	ambiguous_labels	iuphar.ligand:7246	gtopdb:8fd317e32c2c0e85|gtopdb:bf77f28fb56add13	mapped and unmapped terms: Antagonist / Antagonist; Antagonist / Partial agonist
+info	ligand	shared_connectivity	iuphar.ligand:531	iuphar.ligand:532	InChIKey connectivity block UMQUQWCJKFOUGV shared by stereoisomers, isotopologues or other forms; treated as one group for selection

@@ -1,0 +1,145 @@
+{
+  "report_type": "curation",
+  "package_version": "0.1.0",
+  "manifest": {
+    "name": "adrb2",
+    "sha256": "835c170b86938ebc564a4ab1d718d40d242c264308a9d4824f1fcc4de417ac20"
+  },
+  "receptor": {
+    "receptor_id": "P07550",
+    "uniprot_accession": "P07550",
+    "uniprot_entry_name": "ADRB2_HUMAN",
+    "gene_symbol": "ADRB2",
+    "name": "β2-adrenoceptor",
+    "species": "Human",
+    "taxon_id": 9606,
+    "gtopdb_target_id": 29,
+    "sequence_length": 413,
+    "sequence_md5": "3E9D25347D93E5C2B71F7D8151DD1E9C"
+  },
+  "gtopdb_release": {
+    "version": "2026.3",
+    "published": "2026-09-16\""
+  },
+  "sources": [
+    {
+      "source_id": "gtopdb_interactions",
+      "url": "https://www.guidetopharmacology.org/DATA/interactions.csv",
+      "sha256": "f574b999ee99c1ecced83876db6a35d8d1b1d607392fc13fb2025e0f1029de64",
+      "bytes": 7547713,
+      "retrieved_utc": "2026-09-26T14:19:11+00:00"
+    },
+    {
+      "source_id": "gtopdb_ligands",
+      "url": "https://www.guidetopharmacology.org/DATA/ligands.csv",
+      "sha256": "17602dd76f6745fd6c91e4ffaa87dcbb61f0885581fd75b9c21729fb1be8328d",
+      "bytes": 6854044,
+      "retrieved_utc": "2026-09-26T14:19:13+00:00"
+    },
+    {
+      "source_id": "uniprot_entry",
+      "url": "https://rest.uniprot.org/uniprotkb/P07550.json?fields=accession,id,gene_primary,organism_name,organism_id,protein_name,sequence",
+      "sha256": "a15cbdcd40e76c725de1c721fedd8db36e4184aba5c8b6f308ee51fcdb928b97",
+      "bytes": 1354,
+      "retrieved_utc": "2026-09-26T14:24:00+00:00"
+    },
+    {
+      "source_id": "pubchem_identity",
+      "url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/1978,2083,2119,2249,2369,2372,2405,2475,2583,2585,2685,2687,2783,3343,3410,3779,3869,3914,4171,4631,4828,4883,4916,4946,5152,5253,5403,5816,32051,33624,36811,37990,39147,42396,43216,51045,56052,59768,71301,71739,114905,123686,155346,155774,156297,439260,3123920,5311064,5311116,5311179,5311452,6603756,6918554,9829836,9841972,9865528,9887812,10028830,10184665,10587912,11504295,44472635,45483813,60150890,60151587,73754996,91885640,139368780/property/InChIKey/JSON",
+      "sha256": "f22a76111882ccbc6c22cb7333d74e668e631acb3ae08cf8fac1637656ab716f",
+      "bytes": 6140,
+      "retrieved_utc": "2026-09-26T14:24:01+00:00"
+    }
+  ],
+  "rules": {
+    "label_mapping": [
+      {
+        "type": "Agonist",
+        "action": "Agonist",
+        "label": 0
+      },
+      {
+        "type": "Agonist",
+        "action": "Full agonist",
+        "label": 0
+      },
+      {
+        "type": "Antagonist",
+        "action": "Antagonist",
+        "label": 1
+      }
+    ],
+    "unmapped_terms": "excluded; a ligand with mapped and unmapped terms is ambiguous and excluded",
+    "join_keys": [
+      "GtoPdb ligand ID",
+      "Target UniProt ID"
+    ],
+    "inclusion": {
+      "ligand_types": [
+        "Synthetic organic",
+        "Metabolite",
+        "Natural product"
+      ],
+      "exclude_labelled": true,
+      "exclude_radioactive": true,
+      "require_pubchem_match": true
+    },
+    "selection": {
+      "max_per_class": 15,
+      "order": "approved drugs first, then ascending GtoPdb ligand ID; at most one ligand per InChIKey connectivity block across both classes"
+    }
+  },
+  "class_mapping": {
+    "0": "agonist",
+    "1": "antagonist"
+  },
+  "counts": {
+    "annotations": 130,
+    "annotations_by_term": {
+      "Agonist / Agonist": 23,
+      "Agonist / Full agonist": 2,
+      "Agonist / Partial agonist": 49,
+      "Allosteric modulator / Negative": 1,
+      "Allosteric modulator / Positive": 2,
+      "Antagonist / Antagonist": 34,
+      "Antagonist / Partial agonist": 19
+    },
+    "annotated_ligands": 68,
+    "ligands_by_pair_status": {
+      "ambiguous": 3,
+      "consistent": 37,
+      "unmapped": 28
+    },
+    "excluded_ligands": 32,
+    "exclusions_by_reason": {
+      "ambiguous_label": 3,
+      "labelled": 3,
+      "ligand_type": 1,
+      "missing_structure": 1,
+      "radioactive": 3,
+      "unmapped_action": 28
+    },
+    "issues_by_type": {
+      "error:missing_structure": 1,
+      "info:shared_connectivity": 1,
+      "warning:ambiguous_labels": 3
+    },
+    "eligible_by_class": {
+      "agonist": 14,
+      "antagonist": 22
+    },
+    "selected_by_class": {
+      "agonist": 14,
+      "antagonist": 15
+    }
+  },
+  "outputs": [
+    "receptor.tsv",
+    "ligands.tsv",
+    "annotations.tsv",
+    "issues.tsv",
+    "exclusions.tsv",
+    "candidates.tsv",
+    "curation_report.json"
+  ]
+}

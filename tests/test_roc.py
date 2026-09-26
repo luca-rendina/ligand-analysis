@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 import matplotlib
+
 matplotlib.use("Agg")
 import numpy as np
 from sklearn.metrics import roc_auc_score, roc_curve
@@ -35,7 +36,7 @@ class RocTests(unittest.TestCase):
                         fpr, tpr, _ = roc_curve(truth, scores, pos_label=1)
                         np.testing.assert_allclose(line.get_xdata(), fpr)
                         np.testing.assert_allclose(line.get_ydata(), tpr)
-                        self.assertIn("auc %.2f" % roc_auc_score(truth, scores), line.get_label())
+                        self.assertIn(f"auc {roc_auc_score(truth, scores):.2f}", line.get_label())
                         self.assertTrue((Path(folder) / "receptor_structure_ROC.png").is_file())
                         plot.close("all")
                     model.predict.assert_not_called()

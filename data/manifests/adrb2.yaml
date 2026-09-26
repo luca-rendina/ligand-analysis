@@ -1,0 +1,51 @@
+# Source manifest for the first curated receptor. Validated by
+# src/ligand_analysis/schemas/source_manifest.schema.json.
+schema_version: 1
+name: adrb2
+description: >-
+  Human beta2-adrenergic receptor agonists and antagonists from a pinned GtoPdb release.
+  Labels come only from the explicit Type/Action rules below.
+
+receptor:
+  uniprot_accession: P07550
+  gene_symbol: ADRB2
+  species: Human
+  taxon_id: 9606
+  gtopdb_target_id: 29
+
+sources:
+  gtopdb_interactions:
+    url: https://www.guidetopharmacology.org/DATA/interactions.csv
+    sha256: f574b999ee99c1ecced83876db6a35d8d1b1d607392fc13fb2025e0f1029de64
+    release: "2026.3"
+    license: ODbL 1.0 (database), CC BY-SA 4.0 (contents)
+    citation: IUPHAR/BPS Guide to PHARMACOLOGY, https://www.guidetopharmacology.org
+  gtopdb_ligands:
+    url: https://www.guidetopharmacology.org/DATA/ligands.csv
+    sha256: 17602dd76f6745fd6c91e4ffaa87dcbb61f0885581fd75b9c21729fb1be8328d
+    release: "2026.3"
+    license: ODbL 1.0 (database), CC BY-SA 4.0 (contents)
+    citation: IUPHAR/BPS Guide to PHARMACOLOGY, https://www.guidetopharmacology.org
+  uniprot_entry:
+    # Not pinned: UniProt updates entries between releases; the snapshot records the checksum.
+    url: https://rest.uniprot.org/uniprotkb/P07550.json?fields=accession,id,gene_primary,organism_name,organism_id,protein_name,sequence
+    license: CC BY 4.0
+  pubchem_identity:
+    url: https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{cids}/property/InChIKey/JSON
+    license: Public domain (NCBI PubChem)
+
+# Only these (Type, Action) pairs are labelled. Partial agonists (listed by GtoPdb under
+# both Agonist and Antagonist types) and allosteric modulators stay unmapped and excluded.
+label_mapping:
+  - {type: Agonist, action: Agonist, label: 0}
+  - {type: Agonist, action: Full agonist, label: 0}
+  - {type: Antagonist, action: Antagonist, label: 1}
+
+inclusion:
+  ligand_types: [Synthetic organic, Metabolite, Natural product]
+  exclude_labelled: true
+  exclude_radioactive: true
+  require_pubchem_match: true
+
+selection:
+  max_per_class: 15

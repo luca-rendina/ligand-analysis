@@ -1,5 +1,5 @@
-from utility_functions import *
-from ensemble_functions import *
+from ligand_analysis.legacy.utility_functions import *
+from ligand_analysis.legacy.ensemble_functions import *
 
 import random
 from random import seed 
@@ -8,8 +8,6 @@ import os
 
 import pandas as pd
 import numpy as np
-
-from openbabel import openbabel
 
 import sklearn.metrics
 from sklearn.metrics import roc_curve, auc, make_scorer, confusion_matrix, roc_auc_score
@@ -20,10 +18,6 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn import tree
-
-from IPython.display import Image
-
-import pydotplus
 
 import joblib
 import json
