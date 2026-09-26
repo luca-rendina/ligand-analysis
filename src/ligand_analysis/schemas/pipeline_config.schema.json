@@ -12,7 +12,10 @@
     "docking": {"$ref": "#/$defs/docking"},
     "pose_selection": {"$ref": "#/$defs/pose_selection"},
     "redocking": {"$ref": "#/$defs/redocking"},
-    "featurization": {"$ref": "#/$defs/featurization"}
+    "featurization": {"$ref": "#/$defs/featurization"},
+    "split": {"$ref": "#/$defs/split"},
+    "models": {"$ref": "#/$defs/models"},
+    "prediction": {"$ref": "#/$defs/prediction"}
   },
   "$defs": {
     "ligand_inputs": {
@@ -146,6 +149,40 @@
             "counts": {"type": "boolean"}
           }
         }
+      }
+    },
+    "split": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "test_fraction", "seed"],
+      "properties": {
+        "method": {"const": "stratified_connectivity_group",
+                   "description": "Stratified by label; ligands sharing an InChIKey connectivity block stay together."},
+        "test_fraction": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1},
+        "seed": {"type": "integer", "minimum": 0}
+      }
+    },
+    "models": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seed", "classifiers", "legacy_loo_threshold"],
+      "properties": {
+        "seed": {"type": "integer", "minimum": 0},
+        "classifiers": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"enum": ["dummy", "logistic_regression", "random_forest", "legacy_ensemble"]}
+        },
+        "legacy_loo_threshold": {"type": "number", "minimum": 0, "maximum": 1,
+                                 "description": "Leave-one-out accuracy a legacy classifier needs to join the ensemble."}
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ligand_ids"],
+      "properties": {
+        "ligand_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^iuphar\\.ligand:[0-9]+$"},
+                       "description": "Curated ligands without a binary label, predicted after training; never used for fitting."}
       }
     }
   }

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Prediction",
+  "description": "Per-sample prediction with its continuous score; true labels only for evaluated samples.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sample_id", "ligand_id", "receptor_id", "representation", "model", "partition", "predicted_label",
+               "predicted_class", "score_class1", "score_type"],
+  "properties": {
+    "sample_id": {"type": "string", "minLength": 1},
+    "ligand_id": {"type": "string", "minLength": 1},
+    "receptor_id": {"type": "string", "minLength": 1},
+    "representation": {"type": "string", "minLength": 1},
+    "model": {"type": "string", "minLength": 1},
+    "partition": {"enum": ["train", "test", "unlabeled"]},
+    "true_label": {"type": ["integer", "null"], "enum": [0, 1, null]},
+    "predicted_label": {"type": "integer", "enum": [0, 1]},
+    "predicted_class": {"enum": ["agonist", "antagonist"]},
+    "score_class1": {"type": "number", "description": "Continuous score for class 1 (antagonist); see score_type."},
+    "score_type": {"type": "string", "minLength": 1}
+  }
+}

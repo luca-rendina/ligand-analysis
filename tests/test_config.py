@@ -85,7 +85,7 @@ class PipelineConfigTests(unittest.TestCase):
 
     def test_demo_config_is_valid_in_every_section(self):
         sections = ["ligand_inputs", "receptor", "ligand_preparation", "docking", "pose_selection", "redocking",
-                    "featurization"]
+                    "featurization", "split", "models", "prediction"]
         loaded = load_config(DEMO, sections)
         self.assertEqual(set(loaded), set(sections))
         self.assertEqual(loaded["featurization"]["plec"],

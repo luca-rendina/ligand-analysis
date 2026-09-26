@@ -18,9 +18,12 @@ ARG REVISION=unknown
 LABEL org.opencontainers.image.title="ligand-ml" \
       org.opencontainers.image.description="ligand-analysis package with the locked open-source ML environment" \
       org.opencontainers.image.revision="$REVISION"
-ENV LIGAND_ANALYSIS_REVISION=$REVISION \
+# PATH lets workflow engines that bypass the micromamba entrypoint find the tools.
+ENV PATH=/opt/conda/bin:$PATH \
+    LIGAND_ANALYSIS_REVISION=$REVISION \
     LIGAND_ANALYSIS_DATA_DIR=/data \
     MPLBACKEND=Agg \
+    OMP_NUM_THREADS=1 \
     PYTHONDONTWRITEBYTECODE=1
 WORKDIR /tmp
 CMD ["ligand-analysis", "--help"]
