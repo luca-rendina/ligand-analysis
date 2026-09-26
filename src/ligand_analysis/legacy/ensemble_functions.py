@@ -3,7 +3,6 @@ from random import seed
 
 import pandas as pd
 import numpy as np
-from xgboost import XGBClassifier
 
 from sklearn import preprocessing
 from sklearn.tree import DecisionTreeClassifier
@@ -20,11 +19,9 @@ from sklearn.gaussian_process.kernels import DotProduct
 from sklearn.svm import SVC
 
 #Visualization
-from IPython.display import Image
 from sklearn.tree import export_graphviz
-import pydotplus
 
-from utility_functions import *
+from .utility_functions import *
 
 class ensemble_model():
 
@@ -35,8 +32,7 @@ class ensemble_model():
                                                  "min_samples_split": 10,
                                                  "max_depth": 8,
                                                  "random_state": random_state}] , 
-                      [GradientBoostingClassifier, {'criterion': 'friedman_mse', 
-                                                    'learning_rate': 0.1, 
+                      [GradientBoostingClassifier, {'learning_rate': 0.1, 
                                                     'loss': 'exponential', 
                                                     'max_depth': 3, 
                                                     'min_samples_split': 10, 

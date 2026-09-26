@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Curation issue row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["severity", "category", "issue_type", "subject_id", "details"],
+  "properties": {
+    "severity": {"type": "string", "enum": ["error", "warning", "info"]},
+    "category": {"type": "string", "enum": ["annotation", "ligand"]},
+    "issue_type": {"type": "string", "enum": [
+      "duplicate_annotation", "conflicting_labels", "ambiguous_labels", "connectivity_label_conflict",
+      "missing_ligand_record", "duplicate_ligand_record", "missing_structure", "invalid_inchikey",
+      "pubchem_mismatch", "pubchem_unverified", "duplicate_structure", "shared_connectivity"
+    ]},
+    "subject_id": {"type": "string", "minLength": 1},
+    "related_ids": {"type": ["string", "null"], "description": "Pipe-separated related identifiers."},
+    "details": {"type": "string"}
+  }
+}

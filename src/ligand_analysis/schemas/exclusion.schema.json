@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Exclusion row",
+  "description": "Why an annotated ligand is not a candidate. A ligand can have several rows.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ligand_id", "receptor_id", "name", "reason", "details"],
+  "properties": {
+    "ligand_id": {"type": "string", "pattern": "^iuphar\\.ligand:[0-9]+$"},
+    "receptor_id": {"type": "string", "minLength": 1},
+    "name": {"type": "string"},
+    "reason": {"type": "string", "enum": [
+      "unmapped_action", "ambiguous_label", "conflicting_label", "connectivity_label_conflict",
+      "missing_ligand_record", "duplicate_ligand_record", "ligand_type", "labelled", "radioactive",
+      "missing_structure", "invalid_inchikey", "identity_mismatch", "identity_unverified"
+    ]},
+    "details": {"type": "string"}
+  }
+}

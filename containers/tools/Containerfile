@@ -1,0 +1,10 @@
+# Build context: repository root.
+#   podman build -f containers/tools/Containerfile -t ligand-tools:<git-sha> .
+FROM docker.io/mambaorg/micromamba:2.9.0-debian13-slim@sha256:e0a99b0f17a759e14c2f967dc0ca2d3a3c1ca3c62955f4d20bba770eaaf0184d
+COPY --chown=$MAMBA_USER:$MAMBA_USER containers/tools/linux-64.lock /tmp/linux-64.lock
+RUN micromamba install --yes --name base --file /tmp/linux-64.lock && micromamba clean --all --yes && rm /tmp/linux-64.lock
+LABEL org.opencontainers.image.title="ligand-tools" org.opencontainers.image.description="DVC and Git for ligand-analysis data versioning"
+# The repository is bind-mounted with a different owner; trust it only at /work.
+ENV DVC_NO_ANALYTICS=1 GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=/work
+WORKDIR /work
+CMD ["dvc", "--help"]

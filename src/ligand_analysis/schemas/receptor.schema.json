@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Receptor row",
+  "description": "Receptor identity cross-checked between the manifest, GtoPdb and UniProt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["receptor_id", "uniprot_accession", "uniprot_entry_name", "gene_symbol", "name", "species",
+               "taxon_id", "gtopdb_target_id", "sequence_length", "sequence_md5"],
+  "properties": {
+    "receptor_id": {"type": "string", "minLength": 1},
+    "uniprot_accession": {"type": "string", "minLength": 1},
+    "uniprot_entry_name": {"type": "string", "minLength": 1},
+    "gene_symbol": {"type": "string", "minLength": 1},
+    "name": {"type": "string", "minLength": 1},
+    "species": {"type": "string", "minLength": 1},
+    "taxon_id": {"type": "integer", "minimum": 1},
+    "gtopdb_target_id": {"type": "integer", "minimum": 1},
+    "sequence_length": {"type": "integer", "minimum": 1},
+    "sequence_md5": {"type": "string", "pattern": "^[0-9A-F]{32}$"}
+  }
+}

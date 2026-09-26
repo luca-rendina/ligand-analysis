@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Source manifest",
+  "description": "Versioned sources and explicit curation rules for one receptor.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "name", "receptor", "sources", "label_mapping", "inclusion", "selection"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "name": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
+    "description": {"type": "string"},
+    "receptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uniprot_accession", "gene_symbol", "species", "taxon_id", "gtopdb_target_id"],
+      "properties": {
+        "uniprot_accession": {"$ref": "#/$defs/uniprot_accession"},
+        "gene_symbol": {"type": "string", "minLength": 1},
+        "species": {"type": "string", "minLength": 1, "description": "GtoPdb 'Target Species' term, e.g. Human."},
+        "taxon_id": {"type": "integer", "minimum": 1},
+        "gtopdb_target_id": {"type": "integer", "minimum": 1}
+      }
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gtopdb_interactions", "gtopdb_ligands", "uniprot_entry", "pubchem_identity"],
+      "properties": {
+        "gtopdb_interactions": {"$ref": "#/$defs/pinned_source"},
+        "gtopdb_ligands": {"$ref": "#/$defs/pinned_source"},
+        "uniprot_entry": {"$ref": "#/$defs/source"},
+        "pubchem_identity": {
+          "allOf": [{"$ref": "#/$defs/source"}, {"properties": {"url": {"pattern": "\\{cids\\}"}}}],
+          "description": "URL template; {cids} is replaced by comma-separated PubChem CIDs."
+        }
+      }
+    },
+    "label_mapping": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Explicit (GtoPdb Type, Action) to label rules; other terms stay unmapped and are excluded.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "action", "label"],
+        "properties": {
+          "type": {"type": "string", "minLength": 1},
+          "action": {"type": "string", "minLength": 1},
+          "label": {"enum": [0, 1], "description": "0 = agonist, 1 = antagonist."}
+        }
+      }
+    },
+    "inclusion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ligand_types", "exclude_labelled", "exclude_radioactive", "require_pubchem_match"],
+      "properties": {
+        "ligand_types": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "exclude_labelled": {"type": "boolean"},
+        "exclude_radioactive": {"type": "boolean"},
+        "require_pubchem_match": {"type": "boolean"}
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_per_class"],
+      "properties": {
+        "max_per_class": {"type": "integer", "minimum": 1}
+      }
+    }
+  },
+  "$defs": {
+    "uniprot_accession": {
+      "type": "string",
+      "pattern": "^([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "license"],
+      "properties": {
+        "url": {"type": "string", "pattern": "^https://"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "release": {"type": "string"},
+        "license": {"type": "string", "minLength": 1},
+        "citation": {"type": "string"}
+      }
+    },
+    "pinned_source": {
+      "allOf": [{"$ref": "#/$defs/source"}, {"required": ["sha256", "release"]}]
+    }
+  }
+}

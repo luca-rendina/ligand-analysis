@@ -1,0 +1,15 @@
+# Top-level dependencies of the ligand-ml image. Build from linux-64.lock, not from this file.
+# Regenerate the lock with the command in README.md after changing this file.
+name: ligand-ml
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - pandas
+  - scikit-learn
+  - matplotlib-base
+  - pyyaml
+  - jsonschema
+  - pip
+  - setuptools

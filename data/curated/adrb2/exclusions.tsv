@@ -1,0 +1,40 @@
+ligand_id	receptor_id	name	reason	details
+iuphar.ligand:91	P07550	pindolol	unmapped_action	Agonist / Partial agonist; Antagonist / Partial agonist
+iuphar.ligand:132	P07550	cyanopindolol	unmapped_action	Agonist / Partial agonist; Antagonist / Partial agonist
+iuphar.ligand:531	P07550	[3H](-)CGP12177	unmapped_action	Agonist / Partial agonist; Antagonist / Partial agonist
+iuphar.ligand:531	P07550	[3H](-)CGP12177	labelled	GtoPdb marks the ligand as labelled
+iuphar.ligand:531	P07550	[3H](-)CGP12177	radioactive	GtoPdb marks the ligand as radioactive
+iuphar.ligand:532	P07550	CGP12177	unmapped_action	Agonist / Partial agonist; Antagonist / Partial agonist
+iuphar.ligand:534	P07550	denopamine	unmapped_action	Agonist / Partial agonist
+iuphar.ligand:535	P07550	dobutamine	unmapped_action	Agonist / Partial agonist
+iuphar.ligand:537	P07550	prenalterol	unmapped_action	Agonist / Partial agonist; Antagonist / Partial agonist
+iuphar.ligand:538	P07550	xamoterol	unmapped_action	Agonist / Partial agonist
+iuphar.ligand:547	P07550	SR59230A	ambiguous_label	Agonist / Partial agonist; Antagonist / Antagonist
+iuphar.ligand:551	P07550	carvedilol	unmapped_action	Agonist / Partial agonist; Antagonist / Partial agonist
+iuphar.ligand:558	P07550	salbutamol	unmapped_action	Agonist / Partial agonist
+iuphar.ligand:559	P07550	salmeterol	unmapped_action	Agonist / Partial agonist
+iuphar.ligand:560	P07550	terbutaline	unmapped_action	Agonist / Partial agonist
+iuphar.ligand:562	P07550	[125I]ICYP	unmapped_action	Agonist / Partial agonist; Antagonist / Partial agonist
+iuphar.ligand:562	P07550	[125I]ICYP	labelled	GtoPdb marks the ligand as labelled
+iuphar.ligand:562	P07550	[125I]ICYP	radioactive	GtoPdb marks the ligand as radioactive
+iuphar.ligand:563	P07550	alprenolol	unmapped_action	Agonist / Partial agonist; Antagonist / Partial agonist
+iuphar.ligand:566	P07550	Zn2+	unmapped_action	Allosteric modulator / Negative; Allosteric modulator / Positive
+iuphar.ligand:566	P07550	Zn2+	missing_structure	GtoPdb has no SMILES or InChIKey
+iuphar.ligand:566	P07550	Zn2+	ligand_type	Inorganic
+iuphar.ligand:567	P07550	BRL37344	unmapped_action	Agonist / Partial agonist
+iuphar.ligand:569	P07550	carazolol	unmapped_action	Agonist / Partial agonist; Antagonist / Partial agonist
+iuphar.ligand:3931	P07550	L755507	unmapped_action	Agonist / Partial agonist
+iuphar.ligand:3932	P07550	L748337	unmapped_action	Agonist / Partial agonist; Antagonist / Partial agonist
+iuphar.ligand:5388	P07550	[3H]dihydroalprenolol	labelled	GtoPdb marks the ligand as labelled
+iuphar.ligand:5388	P07550	[3H]dihydroalprenolol	radioactive	GtoPdb marks the ligand as radioactive
+iuphar.ligand:5571	P07550	(-)-Ro 363	unmapped_action	Agonist / Partial agonist
+iuphar.ligand:7107	P07550	acebutolol	unmapped_action	Agonist / Partial agonist; Antagonist / Partial agonist
+iuphar.ligand:7207	P07550	labetalol	ambiguous_label	Agonist / Partial agonist; Antagonist / Antagonist
+iuphar.ligand:7246	P07550	nebivolol	ambiguous_label	Antagonist / Antagonist; Antagonist / Partial agonist
+iuphar.ligand:7255	P07550	oxprenolol	unmapped_action	Agonist / Partial agonist; Antagonist / Partial agonist
+iuphar.ligand:10455	P07550	ractopamine	unmapped_action	Agonist / Partial agonist
+iuphar.ligand:12065	P07550	BI-167107	unmapped_action	Agonist / Partial agonist
+iuphar.ligand:12581	P07550	ICI89406	unmapped_action	Agonist / Partial agonist
+iuphar.ligand:13193	P07550	bucindolol	unmapped_action	Agonist / Partial agonist; Antagonist / Partial agonist
+iuphar.ligand:13195	P07550	compound 6 [PMID: 29769246]	unmapped_action	Allosteric modulator / Positive
+iuphar.ligand:14691	P07550	bevantolol	unmapped_action	Antagonist / Partial agonist

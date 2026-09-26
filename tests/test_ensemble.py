@@ -2,8 +2,8 @@ import unittest
 
 import numpy as np
 
-from ensemble_functions import ensemble_model
-from utility_functions import measure
+from ligand_analysis.legacy.ensemble_functions import ensemble_model
+from ligand_analysis.legacy.utility_functions import measure
 
 
 class FeatureClassifier:
