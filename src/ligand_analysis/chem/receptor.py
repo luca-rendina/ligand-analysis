@@ -12,6 +12,7 @@ import collections
 import io
 import itertools
 from pathlib import Path
+import random
 
 import numpy as np
 
@@ -264,8 +265,14 @@ def prepare_receptor(pdb_bytes, uniprot, manifest, cfg, output_dir):
     if unknown:
         raise ChemistryError(f"residue_variants name residues that are not in the prepared chain: {sorted(unknown)}")
     modeller = app.Modeller(fixer.topology, fixer.positions)
-    applied = modeller.addHydrogens(pH=cfg["ph"], variants=[overrides.get(residue_label(fixer_key(residue)))
-                                                             for residue in residues])
+    # OpenMM starts added hydrogens at positions from Python's global RNG before minimizing them.
+    rng_state = random.getstate()
+    random.seed(cfg["seed"])
+    try:
+        applied = modeller.addHydrogens(pH=cfg["ph"], variants=[overrides.get(residue_label(fixer_key(residue)))
+                                                                 for residue in residues])
+    finally:
+        random.setstate(rng_state)
     variants = {}
     for residue, variant in zip(modeller.topology.residues(), applied, strict=True):
         variants[fixer_key(residue)] = variant or DEFAULT_STATES.get(residue.name)

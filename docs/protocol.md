@@ -31,9 +31,10 @@ what each stage does and why. The example is an execution demonstration, not a s
 4. PDBFixer adds missing heavy atoms only: the Asp29 side chain and the terminal OXT atoms. The stage stops if
    any pocket residue (heavy atom within 5 Å of carazolol) would need atoms added.
 5. OpenMM `Modeller.addHydrogens` protonates at pH 7.4 (pKa rules; histidine tautomers from hydrogen bonding;
-   His93/172/178/296 HID, His269 HIE). `receptor.residue_variants` can set explicit states. Meeko must match
-   every residue to a template. Nothing is deleted silently, and unknown residues are an error rather than a
-   download of templates.
+   His93/172/178/296 HID, His269 HIE). OpenMM starts the added hydrogens at random positions before minimizing
+   them, so its random generator is seeded (`receptor.seed`); prepared receptors are then byte-identical between
+   runs. `receptor.residue_variants` can set explicit states. Meeko must match every residue to a template.
+   Nothing is deleted silently, and unknown residues are an error rather than a download of templates.
 6. Outputs: `receptor.pdb`, the Meeko `receptor.pdbqt`, `reference_ligand.sdf`, `residues.tsv` (UniProt mapping,
    segment, pocket flag, added atoms, variant, template), `box.json` and `receptor_structure.json` (provenance,
    removed components, repairs, protonation, QC, tool versions).

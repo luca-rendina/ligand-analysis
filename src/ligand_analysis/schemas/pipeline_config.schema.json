@@ -65,7 +65,8 @@
                      "description": "Edge lengths (A) of the box centred on the reference ligand."}
           }
         },
-        "seed": {"type": "integer", "minimum": 1, "description": "Integrator seed for PDBFixer's placement of added atoms."}
+        "seed": {"type": "integer", "minimum": 1,
+                 "description": "Seed for PDBFixer's placement of added atoms and OpenMM's initial hydrogen positions."}
       }
     },
     "ligand_preparation": {

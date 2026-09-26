@@ -118,6 +118,15 @@ class ChemistryChainTests(unittest.TestCase):
         box = json.loads((self.root / "receptor" / "box.json").read_text(encoding="utf-8"))
         self.assertEqual(box["center"], [-30.386, 9.489, 6.751])
 
+    def test_receptor_preparation_is_reproducible(self):
+        from ligand_analysis.chem.receptor import prepare_receptor
+
+        text = FIXTURE.read_text(encoding="utf-8")
+        prepare_receptor(text.encode(), uniprot_for_fixture(text), manifest(), RECEPTOR_CFG, self.root / "again")
+        for name in ("receptor.pdb", "receptor.pdbqt", "residues.tsv", "reference_ligand.sdf"):
+            self.assertEqual((self.root / "again" / name).read_bytes(), (self.root / "receptor" / name).read_bytes(),
+                             name)
+
     def test_every_ligand_has_a_preparation_outcome(self):
         outcomes = {row["ligand_id"]: row for row in read_table(self.root / "ligands" / "ligand_outcomes.tsv",
                                                                  "ligand_outcome")}
