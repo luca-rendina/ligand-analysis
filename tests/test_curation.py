@@ -299,6 +299,9 @@ class CurationTests(unittest.TestCase):
                          ["consistent", "conflicting", "ambiguous", "unmapped"])
         self.assertEqual(self.table("receptor", "receptor")[0]["name"], "fake β1 receptor")
 
+    def test_release_header_is_parsed_without_quotes(self):
+        self.assertEqual(self.report["gtopdb_release"], {"version": "9999.1", "published": "2000-01-01"})
+
     def test_curation_is_deterministic_and_offline(self):
         with tempfile.TemporaryDirectory() as other:
             self.run_curate(Path(other))

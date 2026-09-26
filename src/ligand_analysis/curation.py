@@ -24,7 +24,7 @@ from .tables import write_table
 
 PUBCHEM_BATCH = 200
 INCHIKEY = re.compile(r"^[A-Z]{14}-[A-Z]{10}-[A-Z]$")
-RELEASE = re.compile(r"GtoPdb Version: (\S+) - published: (\S+)")
+RELEASE = re.compile(r"GtoPdb Version: (\S+) - published: ([^\"\s]+)")
 OUTPUT_FILES = ("receptor.tsv", "ligands.tsv", "annotations.tsv", "issues.tsv", "exclusions.tsv",
                 "candidates.tsv", "curation_report.json")
 SELECTION_ORDER = ("approved drugs first, then ascending GtoPdb ligand ID; at most one ligand "
