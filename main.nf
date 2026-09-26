@@ -13,7 +13,7 @@
 
 include { FETCH ; CURATE ; LIGAND_INPUTS ; PREDICTION_INPUTS } from './workflow/modules/data'
 include { PREPARE_RECEPTOR ; REDOCK_REFERENCE } from './workflow/modules/chem'
-include { SPLIT ; TRAIN ; PREDICT ; REPORT } from './workflow/modules/ml'
+include { SPLIT ; TRAIN ; PREDICT ; REPORT ; CHECK_REPORT } from './workflow/modules/ml'
 include { LIGAND_FEATURES as LABELLED ; LIGAND_FEATURES as PREDICTION } from './workflow/subworkflows/ligand_features'
 
 def stageConfig(sections) {
@@ -45,6 +45,16 @@ workflow {
     main:
     def manifestFile = file(params.manifest, checkIfExists: true)
     def manifest = new org.yaml.snakeyaml.Yaml().load(manifestFile.text)
+    // Values that become file names or command arguments are checked before any task runs;
+    // the stage commands validate everything else against the JSON schemas.
+    if (!(manifest.name ==~ /[a-z0-9][a-z0-9_-]*/)) {
+        error("Manifest name must match [a-z0-9][a-z0-9_-]*: ${manifest.name}")
+    }
+    def classifiers = ['dummy', 'logistic_regression', 'random_forest', 'legacy_ensemble']
+    def unknownClassifiers = params.models.classifiers.findAll { name -> !(name in classifiers) }
+    if (unknownClassifiers) {
+        error("Unknown classifiers ${unknownClassifiers}; choose from ${classifiers}")
+    }
     def configs = [
         ligand_preparation: stageConfig(['ligand_preparation']),
         docking: stageConfig(['docking']),
@@ -96,6 +106,7 @@ workflow {
         LABELLED.out.poses, REDOCK_REFERENCE.out, featureDirs, SPLIT.out,
         TRAIN.out.map { entry -> entry[2] }.collect(), predictions, runMetadata
     )
+    CHECK_REPORT(REPORT.out)
 
     onComplete:
     log.info("Run ${workflow.runName} ${workflow.success ? 'succeeded' : 'failed'}; report: ${params.outdir}/report/report.html")

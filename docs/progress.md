@@ -152,6 +152,10 @@ Fixes made while running the workflow:
 - PowerShell split an unquoted `-profile podman,offline` into two arguments, which silently dropped the offline profile. The launcher joins them again.
 - Build caching kept a stale revision label in `ligand-runner`; rebuild it with `--no-cache` when its revision must be exact.
 
+Fixes from a code review of the branch:
+- A failing `report` task was never published, so an earlier success report could stay in the output folder. `REPORT` now writes and publishes the report even when the run fails its criteria (`--record-failure`), and a separate `CHECK_REPORT` task then fails the run. Checked with `-resume` and `redocking.rmsd_threshold: 0.5`: the run exited 1 and the published report showed `failed` ("redocking RMSD 0.996 A exceeds 0.5 A"). A rerun with the demo settings published `success` again; only REPORT and CHECK_REPORT ran.
+- Classifier names and the manifest name become shell arguments and file names. They are now checked in `main.nf` before any task runs, and quoted in the task scripts.
+
 Commands (PowerShell, repository root):
 
 ```powershell
@@ -165,7 +169,7 @@ podman run --rm --network=none -v "${PWD}:/work" -w /work ligand-ml:dev ligand-a
 
 Without `--sources_dir`, FETCH uses the DVC snapshot `data/sources/adrb2` (after `dvc pull`) and the run needs no download.
 
-Not done yet: a run on Linux with `scripts/nextflow.sh`. It is written, but on this machine only the Windows wrapper was executed.
+The Linux wrapper `scripts/nextflow.sh` was run inside the Podman machine (Fedora 44, Podman 6.0.2) on the same project path with `-profile podman,offline ... -resume`: 53 tasks were cached, REPORT reran, and the status is `success`. Git cannot resolve this Windows worktree from Linux, so the recorded revision is `unknown`; in a normal Linux clone the wrapper records `git describe`. A native Linux host has not been tested.
 
 ## Next task
 

@@ -38,8 +38,8 @@ process TRAIN {
     """
     echo '${config_json}' > stage_config.json
     ligand-analysis train --features ${features} --split ${split} --labels ${curated}/candidates.tsv \\
-        --cohort ${cohort} --model ${model} --config stage_config.json --evaluate \\
-        --output-dir ${representation}_${model}
+        --cohort ${cohort} --model '${model}' --config stage_config.json --evaluate \\
+        --output-dir '${representation}_${model}'
     """
 }
 
@@ -56,7 +56,7 @@ process PREDICT {
 
     script:
     """
-    ligand-analysis predict --model-dir ${model_dir} --features features --output ${representation}_${model}.tsv
+    ligand-analysis predict --model-dir '${model_dir}' --features features --output '${representation}_${model}.tsv'
     """
 }
 
@@ -82,10 +82,23 @@ process REPORT {
     path 'report'
 
     script:
+    // The report is published even when the run fails its success criteria; CHECK_REPORT then fails the run.
     """
     ligand-analysis report --curated ${curated} --ligand-inputs ${ligands} --receptor-dir ${receptor} \\
         --ligands-dir prepared --docking-dir ${docking} --poses-dir ${poses} --redocking-dir ${redocking} \\
         --features ${features} --split ${split} --model-dir ${models} --predictions ${predictions} \\
-        --run-metadata ${run_metadata} --output-dir report
+        --run-metadata ${run_metadata} --record-failure --output-dir report
+    """
+}
+
+process CHECK_REPORT {
+    label 'ml'
+
+    input:
+    path report
+
+    script:
+    """
+    python -c "import json, sys; status = json.load(open('${report}/report.json'))['status']; print('report status:', status); sys.exit(status != 'success')"
     """
 }

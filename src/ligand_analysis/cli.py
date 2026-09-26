@@ -231,7 +231,7 @@ def _report(args):
     print(f"Report [{content['status']}] written to {Path(args.output_dir) / 'report.html'}")
     for problem in content["problems"]:
         print(f"problem: {problem}", file=sys.stderr)
-    if content["status"] != "success":
+    if content["status"] != "success" and not args.record_failure:
         raise RuntimeError("the run did not meet the success criteria; see the report")
 
 
@@ -359,6 +359,9 @@ def build_parser():
     sub.add_argument("--model-dir", required=True, nargs="+", help="train outputs with an evaluation/ folder")
     sub.add_argument("--predictions", nargs="*", help="unlabeled prediction tables")
     sub.add_argument("--run-metadata", help="JSON with workflow provenance")
+    sub.add_argument("--record-failure", action="store_true",
+                     help="exit 0 even when the run fails its success criteria (the workflow publishes the report, "
+                          "then fails the run itself)")
     sub.add_argument("--output-dir", required=True)
     return parser
 

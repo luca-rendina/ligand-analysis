@@ -86,7 +86,7 @@ On Linux, enable the user Podman socket once (`systemctl --user enable --now pod
 - `FETCH` stores the snapshot in `data/sources/<manifest name>` (`--sources_dir` to change) and is skipped when it exists. `curate` verifies every checksum when it reads the snapshot.
 - Add `,offline` to the profile (`-profile podman,offline`) to give every task container `--network=none`; the controller runs with `NXF_OFFLINE=true`.
 - `-resume` reuses completed tasks. Each stage receives only its own configuration sections, so editing, say, `docking` in a copy of `configs/demo.yaml` reruns docking and what depends on it, while curation, preparation and Morgan features stay cached.
-- The report is written even when the run fails its success criteria (receptor or redocking QC, missing outcomes, too few samples per class); the `REPORT` task then exits 1.
+- The report is published even when the run fails its success criteria (receptor or redocking QC, missing outcomes, too few samples per class); the `CHECK_REPORT` task then fails the run, so a failed run never leaves an earlier success report in place.
 
 The stages are also individual commands (`ligand-analysis <command> --help`): `ligand-inputs`, `prediction-inputs`, `prepare-receptor`, `prepare-ligands`, `dock`, `select-poses`, `redock-reference`, `featurize plec|morgan` (in `ligand-chem`), and `split`, `train`, `evaluate`, `predict`, `report` (in `ligand-ml`). For example, to predict new ligands with a saved model after preparing, docking and featurizing them with the same configuration:
 
