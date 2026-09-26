@@ -1,0 +1,29 @@
+# Top-level dependencies of the ligand-chem image. Build from linux-64.lock, not from this file.
+# Regenerate the lock with the command in README.md after changing this file.
+# ODDT 0.7 (the only release, used for PLEC) requires numpy<2, which also caps Python at 3.12.
+name: ligand-chem
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy<2
+  - scipy
+  - pandas
+  - scikit-learn
+  - pyyaml
+  - jsonschema
+  - rdkit
+  - molscrub
+  - meeko
+  - vina
+  - pdbfixer
+  - openmm
+  - oddt
+  - openbabel
+  # numpydoc is in ODDT's pip requirements; imagecodecs (via scikit-image) needs numpy>=2.1 from 2025.11.
+  - numpydoc
+  - imagecodecs<2025.11
+  # ps for Nextflow's task wrapper.
+  - procps-ng
+  - pip
+  - setuptools

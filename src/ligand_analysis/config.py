@@ -58,3 +58,38 @@ def load_manifest(path):
 def manifest_sha256(path):
     """SHA-256 of a manifest with LF line endings, so CRLF (Windows) checkouts give the same digest."""
     return hashlib.sha256(Path(path).read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+
+def canonical_sha256(value):
+    """SHA-256 of a JSON-serialisable value with sorted keys, used to identify configurations."""
+    text = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def load_config(path, sections):
+    """Load a YAML or JSON pipeline configuration and validate the requested sections.
+
+    Stage commands read only their own sections, so the workflow can pass each stage a
+    configuration holding just those sections and cache stages independently.
+    """
+    path = Path(path)
+    try:
+        config = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as error:
+        raise ConfigError(f"{path} is not valid YAML/JSON: {error}") from error
+    if not isinstance(config, dict):
+        raise ConfigError(f"{path} must contain a mapping")
+    schema = load_schema("pipeline_config")
+    unknown = [section for section in sections if section not in schema["properties"]]
+    if unknown:
+        raise ConfigError(f"unknown configuration section(s): {', '.join(unknown)}")
+    missing = [section for section in sections if section not in config]
+    if missing:
+        raise ConfigError(f"{path} lacks the section(s) {', '.join(missing)}")
+    errors = []
+    for section in sections:
+        section_schema = {**schema["properties"][section], "$defs": schema["$defs"]}
+        errors += [f"{section}/{error}" for error in schema_errors(config[section], section_schema)]
+    if errors:
+        raise ConfigError(f"{path} is invalid:\n  " + "\n  ".join(errors))
+    return {section: config[section] for section in sections}

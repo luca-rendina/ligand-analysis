@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ligand preparation outcome",
+  "description": "One row per input ligand: prepared (with state counts) or failed with a reason.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ligand_id", "status", "n_stereoisomers", "n_states"],
+  "properties": {
+    "ligand_id": {"type": "string", "minLength": 1},
+    "name": {"type": ["string", "null"]},
+    "status": {"enum": ["prepared", "failed"]},
+    "reason": {"type": ["string", "null"],
+               "enum": [null, "invalid_smiles", "stereoisomer_limit", "state_limit", "stereo_not_preserved",
+                        "state_generation_failed", "meeko_failed", "no_states"]},
+    "details": {"type": ["string", "null"]},
+    "input_smiles": {"type": "string"},
+    "parent_smiles": {"type": ["string", "null"], "description": "Standardized neutral parent (largest fragment)."},
+    "parent_inchikey": {"type": ["string", "null"], "pattern": "^[A-Z]{14}-[A-Z]{10}-[A-Z]$"},
+    "input_inchikey": {"type": ["string", "null"]},
+    "inchikey_match": {"type": ["boolean", "null"], "description": "Parent InChIKey equals the curated InChIKey."},
+    "operations": {"type": ["string", "null"], "description": "Standardization operations that changed the input, '|' separated."},
+    "stereocenters": {"type": ["integer", "null"], "minimum": 0},
+    "unassigned_stereo": {"type": ["integer", "null"], "minimum": 0},
+    "n_stereoisomers": {"type": "integer", "minimum": 0},
+    "n_states": {"type": "integer", "minimum": 0}
+  }
+}

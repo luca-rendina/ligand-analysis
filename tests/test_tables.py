@@ -55,6 +55,17 @@ class TableTests(unittest.TestCase):
         with self.assertRaisesRegex(ConfigError, "row 2: bytes"):
             read_table(self.path, "source_index")
 
+    def test_numbers_round_trip_exactly(self):
+        row = {"state_id": "x#s1p1c1", "ligand_id": "x", "pose_rank": 1, "score": -10.127, "inter": -7.5e-05,
+               "intra": 0.0, "torsional": 1.25, "intra_best_pose": -0.1}
+        write_table(self.path, [row], "docking_pose")
+        self.assertEqual(read_table(self.path, "docking_pose"), [row])
+        self.assertIn("\t-10.127\t", self.path.read_text(encoding="utf-8"))
+
+    def test_ligand_inputs_cannot_carry_labels(self):
+        with self.assertRaisesRegex(ConfigError, "label"):
+            write_table(self.path, [{"ligand_id": "iuphar.ligand:1", "smiles": "CCO", "label": 0}], "ligand_input")
+
 
 if __name__ == "__main__":
     unittest.main()

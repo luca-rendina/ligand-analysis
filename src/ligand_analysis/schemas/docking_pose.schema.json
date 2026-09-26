@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Docking pose",
+  "description": "One Vina pose of a ligand state; energies in kcal/mol as reported by Vina.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["state_id", "ligand_id", "pose_rank", "score", "inter", "intra", "torsional", "intra_best_pose"],
+  "properties": {
+    "state_id": {"type": "string", "minLength": 1},
+    "ligand_id": {"type": "string", "minLength": 1},
+    "pose_rank": {"type": "integer", "minimum": 1},
+    "score": {"type": "number", "description": "Vina total score; a pose-ranking input, never a label."},
+    "inter": {"type": "number"},
+    "intra": {"type": "number"},
+    "torsional": {"type": "number"},
+    "intra_best_pose": {"type": "number"}
+  }
+}

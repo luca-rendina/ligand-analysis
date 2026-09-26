@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Docking task",
+  "description": "Outcome of docking one ligand state, with the settings that produced it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["state_id", "ligand_id", "status", "n_poses", "engine", "scoring", "seed", "exhaustiveness", "cpu",
+               "config_sha256", "seconds"],
+  "properties": {
+    "state_id": {"type": "string", "minLength": 1},
+    "ligand_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["docked", "failed"]},
+    "reason": {"type": ["string", "null"]},
+    "n_poses": {"type": "integer", "minimum": 0},
+    "best_score": {"type": ["number", "null"]},
+    "engine": {"type": "string", "minLength": 1},
+    "scoring": {"type": "string", "minLength": 1},
+    "seed": {"type": "integer"},
+    "exhaustiveness": {"type": "integer", "minimum": 1},
+    "cpu": {"type": "integer", "minimum": 1},
+    "config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$",
+                      "description": "Docking section and box of the pipeline configuration."},
+    "poses_sdf": {"type": ["string", "null"]},
+    "poses_pdbqt": {"type": ["string", "null"]},
+    "seconds": {"type": "number", "minimum": 0}
+  }
+}

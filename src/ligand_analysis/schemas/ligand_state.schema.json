@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Prepared ligand state",
+  "description": "One stereoisomer / protomer-tautomer / conformer of a parent ligand, ready for docking.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["state_id", "ligand_id", "stereo_index", "protomer_index", "conformer_index", "stereo_status", "smiles",
+               "inchikey", "formal_charge", "heavy_atoms", "sdf_file", "pdbqt_file"],
+  "properties": {
+    "state_id": {"type": "string", "minLength": 1},
+    "ligand_id": {"type": "string", "minLength": 1},
+    "stereo_index": {"type": "integer", "minimum": 1},
+    "protomer_index": {"type": "integer", "minimum": 1, "description": "molscrub protomer/tautomer state."},
+    "conformer_index": {"type": "integer", "minimum": 1},
+    "stereo_status": {"enum": ["no_stereo", "specified", "enumerated"],
+                      "description": "enumerated: this stereoisomer assigns centres the input left unspecified."},
+    "smiles": {"type": "string", "minLength": 1},
+    "inchikey": {"type": "string", "pattern": "^[A-Z]{14}-[A-Z]{10}-[A-Z]$"},
+    "formal_charge": {"type": "integer"},
+    "heavy_atoms": {"type": "integer", "minimum": 1},
+    "sdf_file": {"type": "string", "minLength": 1},
+    "pdbqt_file": {"type": "string", "minLength": 1}
+  }
+}

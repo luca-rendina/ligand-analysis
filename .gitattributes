@@ -4,3 +4,5 @@ Containerfile text eol=lf
 *.sh text eol=lf
 # Tests compare curated tables byte for byte with fresh output.
 data/curated/** text eol=lf
+# Fixed-column molecular fixtures read inside Linux containers.
+tests/fixtures/** text eol=lf

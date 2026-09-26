@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Feature row",
+  "description": "Row of a feature matrix, in matrix order, with its sample identity and provenance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["row", "sample_id", "ligand_id", "receptor_id", "group_id"],
+  "properties": {
+    "row": {"type": "integer", "minimum": 0},
+    "sample_id": {"type": "string", "minLength": 1, "description": "<ligand_id>@<receptor_id>."},
+    "ligand_id": {"type": "string", "minLength": 1},
+    "receptor_id": {"type": "string", "minLength": 1},
+    "structure_id": {"type": ["string", "null"], "description": "Receptor structure of the pose (PLEC only)."},
+    "state_id": {"type": ["string", "null"]},
+    "pose_rank": {"type": ["integer", "null"], "minimum": 1},
+    "group_id": {"type": "string", "minLength": 1, "description": "InChIKey connectivity block of the parent."}
+  }
+}

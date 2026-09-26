@@ -35,6 +35,12 @@
         }
       }
     },
+    "structures": {
+      "type": "object",
+      "description": "Experimental receptor structures keyed by lower-case PDB ID; fetched with the other sources.",
+      "propertyNames": {"pattern": "^[0-9][a-z0-9]{3}$"},
+      "additionalProperties": {"$ref": "#/$defs/structure_source"}
+    },
     "label_mapping": {
       "type": "array",
       "minItems": 1,
@@ -89,6 +95,20 @@
     },
     "pinned_source": {
       "allOf": [{"$ref": "#/$defs/source"}, {"required": ["sha256", "release"]}]
+    },
+    "structure_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pdb_id", "format", "url", "sha256", "release", "license"],
+      "properties": {
+        "pdb_id": {"type": "string", "pattern": "^[0-9][A-Z0-9]{3}$"},
+        "format": {"enum": ["pdb"], "description": "Legacy PDB format with DBREF, SEQADV and HETATM records."},
+        "url": {"type": "string", "pattern": "^https://"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "release": {"type": "string", "minLength": 1, "description": "Entry revision, e.g. the latest REVDAT."},
+        "license": {"type": "string", "minLength": 1},
+        "citation": {"type": "string"}
+      }
     }
   }
 }
