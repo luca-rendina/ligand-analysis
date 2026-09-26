@@ -21,8 +21,10 @@ $socket = (podman info --format '{{.Host.RemoteSocket.Path}}') -replace '^unix:/
 if (-not $socket) { throw 'Cannot find the Podman machine API socket; is the machine running (podman machine start)?' }
 $revision = git -C $repo describe --always --dirty 2>$null
 if (-not $revision) { $revision = 'unknown' }
+# PowerShell turns an unquoted "-profile podman,offline" into an array; Nextflow needs the comma list.
+$nextflowArgs = foreach ($arg in $args) { if ($arg -is [array]) { $arg -join ',' } else { $arg } }
 podman run --rm --user root --security-opt label=disable `
     -v "${socket}:/run/podman/podman.sock" `
     -v "${repo}:${machinePath}" -w $machinePath `
-    localhost/ligand-runner:dev nextflow run main.nf @args --git_revision $revision
+    localhost/ligand-runner:dev nextflow run main.nf @nextflowArgs --git_revision $revision
 exit $LASTEXITCODE
