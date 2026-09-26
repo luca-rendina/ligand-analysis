@@ -1,0 +1,93 @@
+# Lint and test every pull request; publish the tested images to GHCR from main and v* tags.
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  lint:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Ruff
+        run: podman run --rm -v "$PWD:/io:ro" -w /io ghcr.io/astral-sh/ruff:0.16.9 check --no-cache --output-format=github src tests
+
+  test:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build images
+        run: |
+          source_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+          podman build -f containers/ml/Containerfile -t ligand-ml:ci \
+            --build-arg REVISION="$GITHUB_SHA" --label org.opencontainers.image.source="$source_url" .
+          podman build -f containers/tools/Containerfile -t ligand-tools:ci \
+            --label org.opencontainers.image.revision="$GITHUB_SHA" --label org.opencontainers.image.source="$source_url" .
+      - name: Unit tests (installed package, offline)
+        run: |
+          podman run --rm --network=none -v "$PWD:/work:ro" -w /work -e PYTHONPATH=code/ml_protocol \
+            ligand-ml:ci python -m unittest discover -s tests -v
+      - name: Smoke test the CLIs outside the repository
+        run: |
+          podman run --rm --network=none ligand-ml:ci ligand-analysis synthetic-example --seed 0 --output-dir /tmp/out
+          podman run --rm --network=none ligand-tools:ci dvc version
+      - name: Save images
+        if: github.event_name == 'push'
+        run: podman save --multi-image-archive -o images.tar ligand-ml:ci ligand-tools:ci
+      - name: Upload images
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: images
+          path: images.tar
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    if: github.event_name == 'push'
+    needs: [lint, test]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: images
+      - name: Push images to GHCR
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          podman load -i images.tar
+          # No moving tags such as latest: the commit SHA on main, the version on tags.
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then tag="$GITHUB_REF_NAME"; else tag="$GITHUB_SHA"; fi
+          registry="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
+          podman login ghcr.io --username "$GITHUB_ACTOR" --password-stdin <<< "$REGISTRY_TOKEN"
+          echo "### Published images" >> "$GITHUB_STEP_SUMMARY"
+          for image in ligand-ml ligand-tools; do
+            podman tag "$image:ci" "$registry/$image:$tag"
+            podman push --digestfile digest "$registry/$image:$tag"
+            echo "- \`$registry/$image:$tag@$(cat digest)\`" >> "$GITHUB_STEP_SUMMARY"
+          done

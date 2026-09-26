@@ -32,6 +32,15 @@ podman run --rm -v "${PWD}:/io:ro" -w /io ghcr.io/astral-sh/ruff:0.16.9 check --
 
 Tests use small synthetic fixtures and never touch the network. When the ADRB2 snapshot is present (after `dvc pull`), they also check that `curate` reproduces `data/curated/adrb2` byte for byte.
 
+## CI/CD
+
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on GitHub-hosted Ubuntu 26.04 runners, which ship Podman 5.7:
+
+- On every pull request, push to `main` or `v*` tag, and manual run (Actions → CI/CD → Run workflow): Ruff, both image builds, the offline test suite against the installed package, and CLI smoke tests. The ADRB2 reproduction test is skipped because the DVC remote is local. Other branches are tested through a pull request or a manual run.
+- After a push to `main` or a `v*` tag passes, the tested images are pushed to `ghcr.io/luca-rendina/ligand-ml` and `ghcr.io/luca-rendina/ligand-tools`, tagged with the commit SHA or the version tag (there is no `latest`). The run summary lists the digests; pin them for published runs.
+
+New GHCR packages are private; their visibility can be changed in the package settings (making a package public cannot be undone). Dependabot proposes monthly updates for the SHA-pinned actions.
+
 ## Synthetic example (software regression only)
 
 ```powershell
@@ -73,6 +82,7 @@ Label mapping `0 = agonist`, `1 = antagonist`. Evaluation uses raw confusion cou
 
 - `src/ligand_analysis/`: the package and its CLI; `schemas/` holds the JSON Schemas for manifests and tables; `legacy/` holds the metric and ensemble functions moved from `code/ml_protocol` (only the imports and one redundant default argument changed).
 - `containers/`: one Containerfile, environment and lockfile per image.
+- `.github/`: the CI/CD workflow, the Dependabot configuration and the Copilot instructions.
 - `data/manifests/` (source manifests) and `data/curated/` (small curated tables) are committed; `data/sources/` is tracked by DVC; `data/local/` is ignored scratch space.
 - `tests/`: unit tests named after the module they cover (`test_sources.py`, `test_tables.py`, ...), plus the legacy regression tests (`test_ensemble.py`, `test_metrics.py`, `test_roc.py`).
 

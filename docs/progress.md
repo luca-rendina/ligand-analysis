@@ -81,6 +81,23 @@ podman run --rm -v "${PWD}:/io:ro" -w /io ghcr.io/astral-sh/ruff:0.16.9 check --
 podman run --rm --network=none -v "${PWD}:/work:ro" -w /work -e PYTHONPATH=code/ml_protocol ligand-ml:dev python -m unittest discover -s tests -v
 ```
 
+## CI/CD (GitHub Actions)
+
+`.github/workflows/ci.yml` runs on `ubuntu-26.04` runners, which ship Podman 5.7 (`ubuntu-24.04` has Podman 4.9):
+- `lint`: Ruff on `src` and `tests`, with GitHub annotations.
+- `test`: builds both images with revision and source labels, runs the offline suite (`--network=none`) against the installed package, and smoke-tests `ligand-analysis synthetic-example` and `dvc version` outside the repository.
+- `publish` (pushes to `main` and `v*` tags only, after `lint` and `test`): loads the tested images and pushes them to GHCR as `ghcr.io/luca-rendina/ligand-ml` and `ligand-tools`, tagged with the commit SHA or the version tag. There are no moving tags; the run summary lists the digests.
+
+Actions are pinned by commit SHA and updated monthly by Dependabot (`.github/dependabot.yml`). The workflow token is read-only except for `packages: write` in `publish`, and checkout does not keep credentials.
+
+Checked locally:
+- actionlint 1.7.12 with shellcheck: no findings, apart from `ubuntu-26.04` missing from its runner-label list, which predates that runner.
+- Both images build with the CI flags and carry the expected labels.
+- In a fresh clone without the DVC snapshot, the CI test command ran 58 tests with 1 skipped (the ADRB2 golden test), and the smoke tests passed.
+- The `podman save`/`podman load` hand-off between jobs keeps the tags and labels.
+
+Not verified yet: a run on GitHub and the GHCR push. The golden test stays skipped in CI until CI can reach a DVC remote (M6).
+
 ## Next task
 
 M2: receptor structure selection (e.g. 2RH1) and ligand preparation for the selected candidates.

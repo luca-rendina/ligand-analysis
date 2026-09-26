@@ -26,3 +26,5 @@ podman run --rm -v "${PWD}:/io:ro" -w /io ghcr.io/astral-sh/ruff:0.16.9 check --
 ```
 
 Add or update focused tests for changed behavior, then run the regression suite and the lint check. Do not claim molecular workflow validation unless the chemistry stages were actually executed.
+
+CI (`.github/workflows/ci.yml`) runs the same checks on Linux against the installed package; keep the commands in sync.
