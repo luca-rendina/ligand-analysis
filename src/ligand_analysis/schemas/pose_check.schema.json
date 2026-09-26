@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pose check",
+  "description": "Geometry and identity checks of one docked pose before selection.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["state_id", "ligand_id", "pose_rank", "score", "identity_ok", "in_box", "valid"],
+  "properties": {
+    "state_id": {"type": "string", "minLength": 1},
+    "ligand_id": {"type": "string", "minLength": 1},
+    "pose_rank": {"type": "integer", "minimum": 1},
+    "score": {"type": "number"},
+    "identity_ok": {"type": "boolean", "description": "Exported pose has the state's connectivity, charges and 3D stereochemistry."},
+    "in_box": {"type": "boolean"},
+    "min_distance": {"type": ["number", "null"], "description": "Closest ligand-receptor heavy-atom distance (A)."},
+    "clashes": {"type": ["integer", "null"], "minimum": 0},
+    "centroid_to_reference": {"type": ["number", "null"], "description": "Distance (A) to the reference ligand centroid."},
+    "valid": {"type": "boolean"},
+    "reason": {"type": ["string", "null"]}
+  }
+}

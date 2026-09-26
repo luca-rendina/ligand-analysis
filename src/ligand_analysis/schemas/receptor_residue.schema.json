@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Prepared receptor residue",
+  "description": "Residue of the prepared receptor chain with its UniProt mapping, repairs and assigned states.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["chain", "resnum", "resname", "sequence_status", "segment", "in_pocket", "deposited_heavy_atoms",
+               "altlocs"],
+  "properties": {
+    "chain": {"type": "string", "minLength": 1},
+    "resnum": {"type": "integer", "description": "Author residue number in the PDB entry."},
+    "icode": {"type": ["string", "null"]},
+    "resname": {"type": "string", "minLength": 1},
+    "uniprot_position": {"type": ["integer", "null"], "minimum": 1, "description": "Position from the DBREF mapping."},
+    "uniprot_residue": {"type": ["string", "null"], "pattern": "^[A-Z]$"},
+    "sequence_status": {"enum": ["match", "mutation"]},
+    "segment": {"type": "integer", "minimum": 1, "description": "Chain segment between breaks (gaps get charged termini)."},
+    "in_pocket": {"type": "boolean"},
+    "deposited_heavy_atoms": {"type": "integer", "minimum": 0},
+    "added_heavy_atoms": {"type": ["string", "null"], "description": "Heavy atoms PDBFixer added, '|' separated."},
+    "altlocs": {"type": "boolean", "description": "The deposited residue has alternate locations (the first was kept)."},
+    "variant": {"type": ["string", "null"], "description": "Protonation/disulfide variant chosen by OpenMM or configured."},
+    "template": {"type": ["string", "null"], "description": "Meeko residue template."}
+  }
+}

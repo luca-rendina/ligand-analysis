@@ -23,6 +23,8 @@ def _format(value):
         return ""
     if isinstance(value, bool):
         return "true" if value else "false"
+    if isinstance(value, float):
+        return repr(float(value))
     return str(value)
 
 
@@ -32,6 +34,8 @@ def _parse(text, prop):
         return None
     if "integer" in types and re.fullmatch(r"-?\d+", text):
         return int(text)
+    if "number" in types and re.fullmatch(r"-?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?", text):
+        return float(text)
     if "boolean" in types and text in ("true", "false"):
         return text == "true"
     return text

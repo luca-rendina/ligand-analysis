@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pose selection",
+  "description": "One row per input ligand: the selected pose, or why none was selected.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ligand_id", "receptor_id", "structure_id", "status", "n_states", "n_poses", "n_valid_poses"],
+  "properties": {
+    "ligand_id": {"type": "string", "minLength": 1},
+    "receptor_id": {"type": "string", "minLength": 1},
+    "structure_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["selected", "rejected"]},
+    "state_id": {"type": ["string", "null"]},
+    "pose_rank": {"type": ["integer", "null"], "minimum": 1},
+    "score": {"type": ["number", "null"]},
+    "n_states": {"type": "integer", "minimum": 0},
+    "n_poses": {"type": "integer", "minimum": 0},
+    "n_valid_poses": {"type": "integer", "minimum": 0},
+    "min_distance": {"type": ["number", "null"]},
+    "centroid_to_reference": {"type": ["number", "null"]},
+    "reason": {"type": ["string", "null"], "enum": [null, "not_prepared", "not_docked", "no_valid_pose"]},
+    "details": {"type": ["string", "null"]}
+  }
+}

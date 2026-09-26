@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pipeline configuration",
+  "description": "Scientific parameters of the molecular workflow. Stage commands validate only the sections they read; other keys (Nextflow execution parameters) are ignored.",
+  "type": "object",
+  "properties": {
+    "name": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
+    "manifest": {"type": "string", "minLength": 1},
+    "ligand_inputs": {"$ref": "#/$defs/ligand_inputs"},
+    "receptor": {"$ref": "#/$defs/receptor"},
+    "ligand_preparation": {"$ref": "#/$defs/ligand_preparation"},
+    "docking": {"$ref": "#/$defs/docking"},
+    "pose_selection": {"$ref": "#/$defs/pose_selection"},
+    "redocking": {"$ref": "#/$defs/redocking"},
+    "featurization": {"$ref": "#/$defs/featurization"}
+  },
+  "$defs": {
+    "ligand_inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_per_class"],
+      "properties": {
+        "max_per_class": {"type": "integer", "minimum": 1,
+                          "description": "Use curated selected candidates with selection_rank <= this value."}
+      }
+    },
+    "receptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["structure", "chain", "activation_state", "reference_ligand", "ph", "residue_variants",
+                   "pocket_radius", "box", "seed"],
+      "properties": {
+        "structure": {"type": "string", "pattern": "^[0-9][a-z0-9]{3}$", "description": "Key in the manifest 'structures'."},
+        "chain": {"type": "string", "pattern": "^[A-Za-z0-9]$"},
+        "activation_state": {"enum": ["inactive", "active", "intermediate", "unknown"]},
+        "reference_ligand": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["resname", "name", "smiles", "inchikey"],
+          "properties": {
+            "resname": {"type": "string", "pattern": "^[A-Z0-9]{1,3}$"},
+            "name": {"type": "string", "minLength": 1},
+            "smiles": {"type": "string", "minLength": 1, "description": "Bond orders and stereochemistry for the PDB coordinates."},
+            "inchikey": {"type": "string", "pattern": "^[A-Z]{14}-[A-Z]{10}-[A-Z]$"}
+          }
+        },
+        "ph": {"type": "number", "minimum": 0, "maximum": 14},
+        "residue_variants": {
+          "type": "object",
+          "description": "Explicit residue protonation states, e.g. {\"A:172\": \"HIE\"}; other residues follow OpenMM at 'ph'.",
+          "propertyNames": {"pattern": "^[A-Za-z0-9]:-?[0-9]+$"},
+          "additionalProperties": {"enum": ["HID", "HIE", "HIP", "ASH", "ASP", "GLH", "GLU", "LYN", "LYS", "CYS", "CYX"]}
+        },
+        "pocket_radius": {"type": "number", "exclusiveMinimum": 0,
+                          "description": "Residues with a heavy atom this close (A) to the reference ligand form the pocket."},
+        "box": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["size"],
+          "properties": {
+            "size": {"type": "array", "items": {"type": "number", "exclusiveMinimum": 0, "maximum": 40}, "minItems": 3, "maxItems": 3,
+                     "description": "Edge lengths (A) of the box centred on the reference ligand."}
+          }
+        },
+        "seed": {"type": "integer", "minimum": 1, "description": "Integrator seed for PDBFixer's placement of added atoms."}
+      }
+    },
+    "ligand_preparation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ph", "max_stereoisomers", "max_states", "conformer_seed", "forcefield", "ring_fix"],
+      "properties": {
+        "ph": {"type": "number", "minimum": 0, "maximum": 14},
+        "max_stereoisomers": {"type": "integer", "minimum": 1,
+                              "description": "Ligands with more stereoisomers from unassigned centres are excluded."},
+        "max_states": {"type": "integer", "minimum": 1,
+                       "description": "Ligands with more protomer/tautomer states per stereoisomer are excluded."},
+        "conformer_seed": {"type": "integer", "minimum": 1, "description": "ETKDG seed; molscrub treats 0 as random."},
+        "forcefield": {"enum": ["mmff94s", "mmff94", "uff"]},
+        "ring_fix": {"type": "boolean",
+                     "description": "molscrub ring-conformer fixing; it can invert ring stereocentres, which fails the stereo check."}
+      }
+    },
+    "docking": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine", "scoring", "exhaustiveness", "num_modes", "energy_range", "min_rmsd", "seed"],
+      "properties": {
+        "engine": {"const": "vina"},
+        "scoring": {"enum": ["vina", "vinardo"]},
+        "exhaustiveness": {"type": "integer", "minimum": 1},
+        "num_modes": {"type": "integer", "minimum": 1},
+        "energy_range": {"type": "number", "exclusiveMinimum": 0},
+        "min_rmsd": {"type": "number", "exclusiveMinimum": 0},
+        "seed": {"type": "integer", "minimum": 1}
+      }
+    },
+    "pose_selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule", "clash_distance", "box_tolerance"],
+      "properties": {
+        "rule": {"const": "best_valid_score",
+                 "description": "Lowest Vina score among valid poses of all states; ties by state ID then rank. Labels are never read."},
+        "clash_distance": {"type": "number", "exclusiveMinimum": 0,
+                           "description": "A ligand-receptor heavy-atom pair closer than this (A) rejects the pose."},
+        "box_tolerance": {"type": "number", "minimum": 0,
+                          "description": "Heavy atoms may lie this far (A) outside the docking box."}
+      }
+    },
+    "redocking": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rmsd_threshold"],
+      "properties": {
+        "rmsd_threshold": {"type": "number", "exclusiveMinimum": 0,
+                           "description": "QC passes when the top-ranked pose is within this symmetry-aware heavy-atom RMSD (A)."}
+      }
+    },
+    "featurization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plec", "morgan"],
+      "properties": {
+        "plec": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["depth_ligand", "depth_protein", "size", "distance_cutoff", "count_bits", "ignore_hoh", "backend"],
+          "properties": {
+            "depth_ligand": {"type": "integer", "minimum": 0},
+            "depth_protein": {"type": "integer", "minimum": 0},
+            "size": {"type": "integer", "minimum": 2},
+            "distance_cutoff": {"type": "number", "exclusiveMinimum": 0},
+            "count_bits": {"type": "boolean"},
+            "ignore_hoh": {"type": "boolean"},
+            "backend": {"const": "ob", "description": "ODDT toolkit; Open Babel as in the legacy pipeline."}
+          }
+        },
+        "morgan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["radius", "size", "counts"],
+          "properties": {
+            "radius": {"type": "integer", "minimum": 0},
+            "size": {"type": "integer", "minimum": 2},
+            "counts": {"type": "boolean"}
+          }
+        }
+      }
+    }
+  }
+}

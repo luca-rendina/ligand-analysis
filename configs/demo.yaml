@@ -1,0 +1,77 @@
+# Scientific parameters of the ADRB2 public demo (validated by
+# src/ligand_analysis/schemas/pipeline_config.schema.json). Execution settings (containers,
+# CPUs, paths) live in nextflow.config and conf/. Used both as the Nextflow params file and
+# by the stage commands:
+#   nextflow run main.nf -profile podman -params-file configs/demo.yaml
+#   ligand-analysis prepare-receptor --config configs/demo.yaml ...
+name: adrb2-demo
+manifest: data/manifests/adrb2.yaml
+
+ligand_inputs:
+  # Class-balanced subset of the curated selection (candidates.tsv, selection_rank <= 10):
+  # 10 agonists and 10 antagonists keep the demo within the plan's 10 to 20 ligands.
+  max_per_class: 10
+
+receptor:
+  structure: 2rh1
+  chain: A
+  # Only residues that DBREF maps to the manifest UniProt accession are kept; T4 lysozyme
+  # (1002-1161), waters, ions, lipids, additives and the ligand are removed and recorded.
+  activation_state: inactive
+  reference_ligand:
+    resname: CAU
+    name: carazolol
+    smiles: CC(C)NC[C@H](O)COc1cccc2[nH]c3ccccc3c12   # PDB CCD CAU, (2S)
+    inchikey: BQXQGZPYHWWCEB-ZDUSSCGKSA-N
+  ph: 7.4
+  residue_variants: {}
+  pocket_radius: 5.0
+  box:
+    # Centred on the carazolol bounding box; 26 A edges also cover the extracellular
+    # vestibule reached by long agonists such as vilanterol.
+    size: [26.0, 26.0, 26.0]
+  seed: 1
+
+ligand_preparation:
+  ph: 7.4
+  max_stereoisomers: 4
+  max_states: 4
+  conformer_seed: 42
+  forcefield: mmff94s
+  # molscrub's ring fixing inverted a ring stereocentre of nadolol (tetralin cis-diol) for
+  # some seeds; the ETKDGv3/MMFF94s conformer is kept instead.
+  ring_fix: false
+
+docking:
+  engine: vina
+  scoring: vina
+  exhaustiveness: 8
+  num_modes: 9
+  energy_range: 3.0
+  min_rmsd: 1.0
+  seed: 42
+
+pose_selection:
+  rule: best_valid_score
+  clash_distance: 2.2
+  box_tolerance: 0.5
+
+redocking:
+  # Chosen before docking the labelled ligands; not tuned on classification results.
+  rmsd_threshold: 2.0
+
+featurization:
+  plec:
+    # The legacy configuration (pipeline_functions.preprocessing), with its inherited ODDT
+    # defaults made explicit.
+    depth_ligand: 2
+    depth_protein: 4
+    size: 65536
+    distance_cutoff: 4.5
+    count_bits: true
+    ignore_hoh: true
+    backend: ob
+  morgan:
+    radius: 2
+    size: 2048
+    counts: false

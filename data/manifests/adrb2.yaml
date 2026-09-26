@@ -34,6 +34,18 @@ sources:
     url: https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{cids}/property/InChIKey/JSON
     license: Public domain (NCBI PubChem)
 
+# Receptor structures for docking (M2). 2RH1: inactive beta2AR-T4 lysozyme fusion with the
+# inverse agonist carazolol, 2.4 A. Preparation choices live in configs/demo.yaml.
+structures:
+  2rh1:
+    pdb_id: 2RH1
+    format: pdb
+    url: https://files.rcsb.org/download/2RH1.pdb
+    sha256: 4e993acc81ac58b2cd1a18f84060c98a9742c308cd69687323a0417308a14144
+    release: REVDAT 15 (2024-10-30)
+    license: CC0 1.0 (wwPDB archive data)
+    citation: Cherezov et al. (2007) Science 318:1258-1265, https://doi.org/10.2210/pdb2RH1/pdb
+
 # Only these (Type, Action) pairs are labelled. Partial agonists (listed by GtoPdb under
 # both Agonist and Antagonist types) and allosteric modulators stay unmapped and excluded.
 label_mapping:

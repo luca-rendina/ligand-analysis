@@ -117,9 +117,15 @@ def load_sources(manifest, snapshot):
     return SourceData(release, published, interactions, dict(records), uniprot, pubchem, urls)
 
 
+def structure_source_id(key):
+    return f"structure_{key}"
+
+
 def fetch(manifest, snapshot):
-    """Populate the snapshot with every source curation needs, then save its index."""
+    """Populate the snapshot with every source curation and receptor preparation need, then save its index."""
     load_sources(manifest, snapshot)
+    for key, source in sorted(manifest.get("structures", {}).items()):
+        snapshot.get(structure_source_id(key), source["url"], source["sha256"])
     snapshot.save()
     return snapshot.events
 

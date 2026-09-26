@@ -1,0 +1,31 @@
+# Build context: repository root.
+#   podman build -f containers/chem/Containerfile -t ligand-chem:<git-sha> --build-arg REVISION=<git-sha> .
+FROM docker.io/mambaorg/micromamba:2.9.0-debian13-slim@sha256:e0a99b0f17a759e14c2f967dc0ca2d3a3c1ca3c62955f4d20bba770eaaf0184d
+
+COPY --chown=$MAMBA_USER:$MAMBA_USER containers/chem/linux-64.lock /tmp/linux-64.lock
+RUN micromamba install --yes --name base --file /tmp/linux-64.lock \
+    && micromamba clean --all --yes \
+    && rm /tmp/linux-64.lock
+
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+COPY --chown=$MAMBA_USER:$MAMBA_USER pyproject.toml README.md /tmp/ligand-analysis/
+COPY --chown=$MAMBA_USER:$MAMBA_USER src /tmp/ligand-analysis/src
+RUN python -m pip install --no-deps --no-build-isolation --no-index --no-cache-dir /tmp/ligand-analysis \
+    && python -m pip check \
+    && rm -rf /tmp/ligand-analysis
+
+ARG REVISION=unknown
+LABEL org.opencontainers.image.title="ligand-chem" \
+      org.opencontainers.image.description="ligand-analysis package with the locked open-source chemistry environment (RDKit, molscrub, Meeko, Vina, PDBFixer, ODDT/Open Babel)" \
+      org.opencontainers.image.revision="$REVISION"
+# PATH lets workflow engines that bypass the micromamba entrypoint find the tools.
+# One thread per task by default; the workflow sets the CPU count explicitly.
+ENV PATH=/opt/conda/bin:$PATH \
+    LIGAND_ANALYSIS_REVISION=$REVISION \
+    LIGAND_ANALYSIS_DATA_DIR=/data \
+    ODDT_TOOLKIT=ob \
+    OMP_NUM_THREADS=1 \
+    OPENMM_CPU_THREADS=1 \
+    PYTHONDONTWRITEBYTECODE=1
+WORKDIR /tmp
+CMD ["ligand-analysis", "--help"]

@@ -3,7 +3,7 @@
   "package_version": "0.1.0",
   "manifest": {
     "name": "adrb2",
-    "sha256": "835c170b86938ebc564a4ab1d718d40d242c264308a9d4824f1fcc4de417ac20"
+    "sha256": "d1d3d85e46c59184513062a78945dd3d0240fbbff66d8366b32f2b830c645c85"
   },
   "receptor": {
     "receptor_id": "P07550",
