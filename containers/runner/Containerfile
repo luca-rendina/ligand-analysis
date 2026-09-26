@@ -1,0 +1,25 @@
+# Build context: repository root.
+#   podman build -f containers/runner/Containerfile -t ligand-runner:<git-sha> --build-arg REVISION=<git-sha> .
+# Runs the Nextflow controller. With the podman profile it starts task containers through the
+# host Podman service (socket mounted at /run/podman/podman.sock), so the project directory must
+# be mounted at the same absolute path that the Podman host sees (see scripts/nextflow.ps1).
+FROM docker.io/mambaorg/micromamba:2.9.0-debian13-slim@sha256:e0a99b0f17a759e14c2f967dc0ca2d3a3c1ca3c62955f4d20bba770eaaf0184d
+
+COPY --chown=$MAMBA_USER:$MAMBA_USER containers/runner/linux-64.lock /tmp/linux-64.lock
+RUN micromamba install --yes --name base --file /tmp/linux-64.lock \
+    && micromamba clean --all --yes \
+    && rm /tmp/linux-64.lock
+
+ARG REVISION=unknown
+LABEL org.opencontainers.image.title="ligand-runner" \
+      org.opencontainers.image.description="Nextflow controller with a Podman client for ligand-analysis workflows" \
+      org.opencontainers.image.revision="$REVISION"
+# NXF_OFFLINE: no plugin or update downloads, so cached reruns need no network.
+ENV PATH=/opt/conda/bin:$PATH \
+    JAVA_HOME=/opt/conda/lib/jvm \
+    NXF_OFFLINE=true \
+    NXF_ANSI_LOG=false \
+    NXF_HOME=/tmp/nextflow-home \
+    CONTAINER_HOST=unix:///run/podman/podman.sock \
+    LIGAND_ANALYSIS_REVISION=$REVISION
+CMD ["nextflow", "-version"]

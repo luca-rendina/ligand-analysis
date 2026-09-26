@@ -2,10 +2,12 @@
 
 import argparse
 import json
+from pathlib import Path
 import sys
 
 from . import __version__
 from .config import ConfigError, data_dir
+from .labels import LabelJoinError
 
 
 def _synthetic_example(args):
@@ -69,6 +71,16 @@ def _ligand_inputs(args):
     rows = selected_candidates(read_table(args.candidates, "candidate"), _section(args, "ligand_inputs")["max_per_class"])
     write_table(args.output, rows, "ligand_input")
     print(f"{len(rows)} ligand inputs (identities only, no labels) written to {args.output}")
+
+
+def _prediction_inputs(args):
+    from .inputs import ligands_by_id
+    from .tables import read_table, write_table
+
+    ids = _section(args, "prediction")["ligand_ids"]
+    rows = ligands_by_id(read_table(args.ligands, "ligand"), ids, read_table(args.candidates, "candidate"))
+    write_table(args.output, rows, "ligand_input")
+    print(f"{len(rows)} unlabeled prediction inputs written to {args.output}")
 
 
 def _prepare_receptor(args):
@@ -164,6 +176,65 @@ def _featurize(args):
         print(f"Morgan: {schema['matrix']['n_rows']} rows x {schema['matrix']['n_features']} features")
 
 
+def _split(args):
+    from .ml import make_split
+    from .tables import read_table, write_table
+
+    rows = make_split(read_table(args.candidates, "candidate"), read_table(args.ligands, "ligand_input"),
+                      _section(args, "split"))
+    write_table(args.output, rows, "split")
+    counts = {partition: {name: sum(1 for row in rows if row["partition"] == partition and row["class_name"] == name)
+                          for name in ("agonist", "antagonist")} for partition in ("train", "test")}
+    print(f"Split written to {args.output}: {counts}")
+
+
+def _train(args):
+    from .ml import evaluate, train
+
+    metadata = train(args.features, args.split, args.labels, args.model, _section(args, "models"), args.cohort or [],
+                     args.output_dir)
+    print(f"Trained {metadata['model']} on {metadata['representation']} ({metadata['training']['by_class']})")
+    if args.evaluate:
+        report = evaluate(args.output_dir, args.features, args.split, args.labels, args.cohort or [],
+                          Path(args.output_dir) / "evaluation")
+        test = report["metrics"]["test"]
+        print(f"Test: n={test['n']}, confusion counts {test['confusion_counts']}, balanced accuracy "
+              f"{test['balanced_accuracy']}, ROC AUC (class 1) {test['roc_auc_class1']}")
+
+
+def _evaluate(args):
+    from .ml import evaluate
+
+    report = evaluate(args.model_dir, args.features, args.split, args.labels, args.cohort or [], args.output_dir)
+    test = report["metrics"]["test"]
+    print(f"Test: n={test['n']}, confusion counts {test['confusion_counts']}, balanced accuracy "
+          f"{test['balanced_accuracy']}, ROC AUC (class 1) {test['roc_auc_class1']}")
+
+
+def _predict(args):
+    from .ml import predict
+
+    rows = predict(args.model_dir, args.features, args.output)
+    for row in rows:
+        print(f"{row['ligand_id']:24} {row['predicted_class']:10} score_class1={row['score_class1']:.3f}")
+    print(f"{len(rows)} predictions written to {args.output}")
+
+
+def _report(args):
+    from . import report
+
+    run = json.loads(Path(args.run_metadata).read_text(encoding="utf-8")) if args.run_metadata else None
+    content = report.collect(args.curated, args.ligand_inputs, args.receptor_dir, args.ligands_dir, args.docking_dir,
+                             args.poses_dir, args.redocking_dir, args.features, args.split, args.model_dir,
+                             args.predictions or [], run)
+    report.write_report(content, args.output_dir)
+    print(f"Report [{content['status']}] written to {Path(args.output_dir) / 'report.html'}")
+    for problem in content["problems"]:
+        print(f"problem: {problem}", file=sys.stderr)
+    if content["status"] != "success":
+        raise RuntimeError("the run did not meet the success criteria; see the report")
+
+
 def build_parser():
     parser = argparse.ArgumentParser(prog="ligand-analysis", description=__doc__)
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -204,6 +275,11 @@ def build_parser():
     sub.add_argument("candidates", help="curated candidates.tsv")
     sub.add_argument("--output", required=True)
 
+    sub = stage("prediction-inputs", _prediction_inputs, "write unlabeled ligands to predict (config 'prediction')")
+    sub.add_argument("ligands", help="curated ligands.tsv")
+    sub.add_argument("--candidates", required=True, help="curated candidates.tsv; prediction ligands must not be in it")
+    sub.add_argument("--output", required=True)
+
     sub = stage("prepare-receptor", _prepare_receptor, "select, repair, protonate and parameterize the receptor (chem)")
     sub.add_argument("manifest")
     sub.add_argument("--snapshot-dir", help="default: DATA_DIR/sources/<manifest name>")
@@ -242,6 +318,48 @@ def build_parser():
     sub.add_argument("--receptor-table", help="morgan: curated receptor.tsv giving the receptor ID")
     sub.add_argument("--output-dir", required=True)
 
+    sub = stage("split", _split, "persist a stratified connectivity-group train/test split")
+    sub.add_argument("candidates", help="curated candidates.tsv (labels)")
+    sub.add_argument("ligands", help="ligand input table")
+    sub.add_argument("--output", required=True)
+
+    def model_inputs(sub):
+        sub.add_argument("--features", required=True, help="featurize output directory")
+        sub.add_argument("--split", required=True)
+        sub.add_argument("--labels", required=True, help="curated candidates.tsv")
+        sub.add_argument("--cohort", nargs="*", help="other feature directories; use only samples all of them have")
+
+    sub = stage("train", _train, "fit one classifier on the training partition and save a model bundle")
+    model_inputs(sub)
+    sub.add_argument("--model", required=True, choices=["dummy", "logistic_regression", "random_forest",
+                                                         "legacy_ensemble"])
+    sub.add_argument("--evaluate", action="store_true", help="also evaluate into OUTPUT_DIR/evaluation")
+    sub.add_argument("--output-dir", required=True)
+
+    sub = stage("evaluate", _evaluate, "evaluate a saved model on the persisted split", config=False)
+    model_inputs(sub)
+    sub.add_argument("--model-dir", required=True)
+    sub.add_argument("--output-dir", required=True)
+
+    sub = stage("predict", _predict, "predict unlabeled samples with a saved model bundle", config=False)
+    sub.add_argument("--model-dir", required=True)
+    sub.add_argument("--features", required=True)
+    sub.add_argument("--output", required=True)
+
+    sub = stage("report", _report, "write the HTML/JSON run report; exit 1 unless the run succeeded", config=False)
+    sub.add_argument("--curated", required=True)
+    sub.add_argument("--ligand-inputs", required=True)
+    sub.add_argument("--receptor-dir", required=True)
+    sub.add_argument("--ligands-dir", required=True)
+    sub.add_argument("--docking-dir", required=True, nargs="+")
+    sub.add_argument("--poses-dir", required=True)
+    sub.add_argument("--redocking-dir", required=True)
+    sub.add_argument("--features", required=True, nargs="+")
+    sub.add_argument("--split", required=True)
+    sub.add_argument("--model-dir", required=True, nargs="+", help="train outputs with an evaluation/ folder")
+    sub.add_argument("--predictions", nargs="*", help="unlabeled prediction tables")
+    sub.add_argument("--run-metadata", help="JSON with workflow provenance")
+    sub.add_argument("--output-dir", required=True)
     return parser
 
 
@@ -249,7 +367,7 @@ def main(argv=None):
     args = build_parser().parse_args(argv)
     try:
         args.handler(args)
-    except (ConfigError, OSError, RuntimeError) as error:
+    except (ConfigError, LabelJoinError, OSError, RuntimeError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
     return 0

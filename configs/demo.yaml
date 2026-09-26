@@ -75,3 +75,18 @@ featurization:
     radius: 2
     size: 2048
     counts: false
+
+split:
+  method: stratified_connectivity_group
+  test_fraction: 0.3
+  seed: 0
+
+models:
+  seed: 0
+  classifiers: [dummy, logistic_regression, random_forest, legacy_ensemble]
+  legacy_loo_threshold: 0.6
+
+prediction:
+  # GtoPdb lists these only as partial agonists at beta2, so they have no binary label.
+  # They are predicted after training to exercise unlabeled prediction, never evaluated.
+  ligand_ids: ["iuphar.ligand:558", "iuphar.ligand:560", "iuphar.ligand:563"]  # salbutamol, terbutaline, alprenolol

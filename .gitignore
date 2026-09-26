@@ -9,6 +9,10 @@ dist/
 # Local data directory (mount at /data): caches, work files and run outputs.
 data/local/
 
+# Nextflow launch-directory state (task cache and logs); task work dirs are in data/local/work.
+.nextflow/
+.nextflow.log*
+
 # Local credentials and machine-specific settings.
 .env
 *.env

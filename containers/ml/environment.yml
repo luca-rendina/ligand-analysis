@@ -11,5 +11,7 @@ dependencies:
   - matplotlib-base
   - pyyaml
   - jsonschema
+  # ps for Nextflow's task wrapper.
+  - procps-ng
   - pip
   - setuptools

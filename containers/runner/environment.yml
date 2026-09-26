@@ -1,0 +1,11 @@
+# Workflow controller: Nextflow, its JVM and a Podman client for the host Podman service.
+# Build from linux-64.lock, not from this file; regenerate the lock with the command in README.md.
+name: ligand-runner
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - nextflow=26.04
+  - openjdk=21
+  - podman
+  - procps-ng
