@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import warnings
 
 import numpy as np
 
@@ -33,6 +34,10 @@ SCORE_TYPES = {
 
 class ModelError(RuntimeError):
     """Training, evaluation or prediction inputs are inconsistent."""
+
+
+class FeatureProvenanceWarning(UserWarning):
+    """Features were built with a different schema version or toolkit than the model's training features."""
 
 
 def file_sha256(path):
@@ -230,19 +235,38 @@ def load_bundle(model_dir, schema=None):
                                or schema["matrix"]["n_features"] != bundle["n_features"]):
         raise ModelError(f"features ({schema['representation']}) do not match the model's feature schema "
                          f"({bundle['representation']}); prepare them with the same configuration")
+    if schema is not None:
+        _warn_on_provenance_drift(metadata.get("feature_schema", {}), schema, model_dir)
     return bundle, metadata
 
 
+def _warn_on_provenance_drift(trained, schema, model_dir):
+    """Fingerprint columns can change meaning across schema or toolkit versions without changing width."""
+    differences = []
+    if trained.get("schema_version") != schema.get("schema_version"):
+        differences.append(f"schema_version {trained.get('schema_version')} -> {schema.get('schema_version')}")
+    trained_toolkit, toolkit = trained.get("toolkit") or {}, schema.get("toolkit") or {}
+    for name in sorted(set(trained_toolkit) | set(toolkit)):
+        if trained_toolkit.get(name) != toolkit.get(name):
+            differences.append(f"{name} {trained_toolkit.get(name)} -> {toolkit.get(name)}")
+    if differences:
+        warnings.warn(f"{model_dir}: features were built differently from the model's training features "
+                      f"({'; '.join(differences)}); columns may not mean the same thing, retrain to be sure",
+                      FeatureProvenanceWarning, stacklevel=3)
+
+
 def _prediction_rows(bundle, metadata, rows, features, partition, labels=None):
+    """Prediction table rows (scores rounded for the table) and the unrounded class-1 scores."""
     estimator = bundle["estimator"]
     predicted = np.asarray(estimator.predict(features)).astype(int)
-    scores = class1_scores(estimator, features)
-    return [{"sample_id": row["sample_id"], "ligand_id": row["ligand_id"], "receptor_id": row["receptor_id"],
+    scores = np.asarray(class1_scores(estimator, features), dtype=float)
+    rows = [{"sample_id": row["sample_id"], "ligand_id": row["ligand_id"], "receptor_id": row["receptor_id"],
              "representation": bundle["representation"], "model": bundle["model"], "partition": partition,
              "true_label": None if labels is None else int(labels[index]), "predicted_label": int(predicted[index]),
              "predicted_class": CLASS_NAMES[int(predicted[index])], "score_class1": round(float(scores[index]), 6),
              "score_type": metadata["score_type"]}
             for index, row in enumerate(rows)]
+    return rows, scores
 
 
 def binary_metrics(truth, predicted, scores):
@@ -282,6 +306,11 @@ def binary_metrics(truth, predicted, scores):
 def evaluate(model_dir, features_dir, split_path, labels_path, cohort_dirs, output_dir):
     matrix, rows, schema = load_features(features_dir)
     bundle, metadata = load_bundle(model_dir, schema)
+    split_sha256 = file_sha256(split_path)
+    trained_split = metadata["training"]["split_sha256"]
+    if split_sha256 != trained_split:
+        raise ModelError(f"{split_path} (sha256 {split_sha256}) is not the split the model was trained on "
+                         f"(sha256 {trained_split}); training samples could leak into the test partition")
     split_rows = read_table(split_path, "split")
     label_rows = read_table(labels_path, "candidate")
     cohort = cohort_ids([features_dir, *cohort_dirs])
@@ -292,10 +321,9 @@ def evaluate(model_dir, features_dir, split_path, labels_path, cohort_dirs, outp
             raise ModelError(f"no {partition} samples in the cohort")
         labels = np.array(join_labels(part_rows, label_rows))
         features = matrix[[row["row"] for row in part_rows]].toarray().astype(float)
-        part_predictions = _prediction_rows(bundle, metadata, part_rows, features, partition, labels)
+        part_predictions, scores = _prediction_rows(bundle, metadata, part_rows, features, partition, labels)
         predictions += part_predictions
-        results[partition] = binary_metrics(labels, [row["predicted_label"] for row in part_predictions],
-                                            [row["score_class1"] for row in part_predictions])
+        results[partition] = binary_metrics(labels, [row["predicted_label"] for row in part_predictions], scores)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     write_table(output_dir / "predictions.tsv", predictions, "prediction")
@@ -306,7 +334,7 @@ def evaluate(model_dir, features_dir, split_path, labels_path, cohort_dirs, outp
         "model": bundle["model"],
         "representation": bundle["representation"],
         "model_sha256": metadata["model_sha256"],
-        "split_sha256": file_sha256(split_path),
+        "split_sha256": split_sha256,
         "cohort_size": len(cohort) if cohort else None,
         "class_mapping": {str(label): name for label, name in CLASS_NAMES.items()},
         "conventions": {
@@ -328,6 +356,6 @@ def predict(model_dir, features_dir, output_path):
     bundle, metadata = load_bundle(model_dir, schema)
     if not rows:
         raise ModelError("no feature rows to predict")
-    predictions = _prediction_rows(bundle, metadata, rows, matrix.toarray().astype(float), "unlabeled")
+    predictions, _ = _prediction_rows(bundle, metadata, rows, matrix.toarray().astype(float), "unlabeled")
     write_table(output_path, predictions, "prediction")
     return predictions

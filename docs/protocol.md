@@ -112,10 +112,13 @@ Meeko, which rebuilds bond orders and hydrogens from the preparation remarks. Ev
   It is not a calibrated probability.
 - Metrics (test partition): raw confusion counts (true classes in rows), balanced accuracy, MCC, per-class
   precision/recall/F1, ROC AUC and PR AUC for class 1 (PR AUC also for class 0), and the legacy scalar metrics
-  with class 0 as positive. Undefined metrics stay empty.
+  with class 0 as positive. Undefined metrics stay empty. Ranking metrics use the unrounded scores;
+  `predictions.tsv` rounds them to 6 decimals.
 - A model bundle is `model.joblib` (a pickle: load only trusted runs) plus `model.json`, which records the
-  SHA-256, feature schema, training samples, split digest and settings. `predict` verifies the checksum and that
-  the features were made with the same representation and parameters before predicting unlabeled rows.
+  SHA-256, feature schema, training samples, split digest and settings. `evaluate` and `predict` verify the
+  checksum and that the features were made with the same representation and parameters, and warn if the
+  feature `schema_version` or toolkit versions differ from training. `evaluate` rejects a split whose digest
+  differs from the training split, so training samples cannot move into the test partition.
 
 ## Known limitations
 
