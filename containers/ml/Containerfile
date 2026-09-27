@@ -7,7 +7,10 @@ RUN micromamba install --yes --name base --file /tmp/linux-64.lock \
     && micromamba clean --all --yes \
     && rm /tmp/linux-64.lock
 
-ARG MAMBA_DOCKERFILE_ACTIVATE=1
+# Podman builds OCI images, which ignore SHELL, so micromamba's activating shell is unavailable
+# in RUN; putting the environment on PATH works for OCI and docker formats alike. It also lets
+# workflow engines that bypass the micromamba entrypoint find the tools.
+ENV PATH=/opt/conda/bin:$PATH
 COPY --chown=$MAMBA_USER:$MAMBA_USER pyproject.toml README.md /tmp/ligand-analysis/
 COPY --chown=$MAMBA_USER:$MAMBA_USER src /tmp/ligand-analysis/src
 RUN python -m pip install --no-deps --no-build-isolation --no-index --no-cache-dir /tmp/ligand-analysis \
@@ -18,9 +21,7 @@ ARG REVISION=unknown
 LABEL org.opencontainers.image.title="ligand-ml" \
       org.opencontainers.image.description="ligand-analysis package with the locked open-source ML environment" \
       org.opencontainers.image.revision="$REVISION"
-# PATH lets workflow engines that bypass the micromamba entrypoint find the tools.
-ENV PATH=/opt/conda/bin:$PATH \
-    LIGAND_ANALYSIS_REVISION=$REVISION \
+ENV LIGAND_ANALYSIS_REVISION=$REVISION \
     LIGAND_ANALYSIS_DATA_DIR=/data \
     MPLBACKEND=Agg \
     OMP_NUM_THREADS=1 \
