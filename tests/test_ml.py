@@ -10,6 +10,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+import warnings
 
 import numpy as np
 import yaml
@@ -20,6 +22,7 @@ from ligand_analysis.config import ConfigError
 from ligand_analysis.inputs import ligands_by_id, selected_candidates
 from ligand_analysis.legacy.ensemble_functions import ensemble_model
 from ligand_analysis.ml import (
+    FeatureProvenanceWarning,
     LegacyEnsemble,
     ModelError,
     binary_metrics,
@@ -198,6 +201,55 @@ class ModelTests(Workspace):
             handle.write(b"tampered")
         with self.assertRaisesRegex(ModelError, "checksum"):
             load_bundle(model_dir)
+
+    def test_evaluation_rejects_a_split_other_than_the_training_split(self):
+        model_dir = self.root / "dummy"
+        train(self.features_dir, self.split_path, self.labels_path, "dummy", MODELS_CFG, [], model_dir)
+        moved = [dict(row, partition="test" if row["partition"] == "train" else "train") for row in self.split_rows]
+        other_split = self.root / "other_split.tsv"
+        write_table(other_split, moved, "split")
+        with self.assertRaisesRegex(ModelError, "not the split the model was trained on"):
+            evaluate(model_dir, self.features_dir, other_split, self.labels_path, [], model_dir / "evaluation")
+
+    def test_feature_provenance_drift_warns_but_still_predicts(self):
+        model_dir = self.root / "lr"
+        train(self.features_dir, self.split_path, self.labels_path, "logistic_regression", MODELS_CFG, [], model_dir)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", FeatureProvenanceWarning)
+            predict(model_dir, self.features_dir, self.root / "same.tsv")
+        matrix, rows, schema = features(self.ids, 0, self.labels)
+        schema.update(schema_version=2, toolkit={"rdkit": "2099.01.1"})
+        drifted = self.root / "drifted"
+        write_features(drifted, matrix, rows, schema)
+        with self.assertWarnsRegex(FeatureProvenanceWarning, r"schema_version 1 -> 2; rdkit None -> 2099\.01\.1"):
+            predicted = predict(model_dir, drifted, self.root / "drifted.tsv")
+        self.assertEqual(len(predicted), len(self.ids))
+
+    def test_ranking_metrics_use_unrounded_scores(self):
+        model_dir = self.root / "lr"
+        train(self.features_dir, self.split_path, self.labels_path, "logistic_regression", MODELS_CFG, [], model_dir)
+        bundle, _ = load_bundle(model_dir)
+
+        class NearTies:
+            classes_ = np.array([0, 1])
+
+            def predict(self, features):
+                return np.zeros(features.shape[0], dtype=int)
+
+            def predict_proba(self, features):
+                # Class-1 samples score 1e-8 higher: identical after rounding to 6 decimals.
+                high = np.asarray(features[:, :8].sum(axis=1) < features[:, 8:16].sum(axis=1), dtype=float)
+                class1 = 0.5 + 1e-8 * high
+                return np.column_stack([1 - class1, class1])
+
+        bundle["estimator"] = NearTies()
+        with patch("ligand_analysis.ml.load_bundle", return_value=(bundle, json.loads(
+                (model_dir / "model.json").read_text(encoding="utf-8")))):
+            report = evaluate(model_dir, self.features_dir, self.split_path, self.labels_path, [],
+                              model_dir / "evaluation")
+        rows = read_table(model_dir / "evaluation" / "predictions.tsv", "prediction")
+        self.assertEqual({row["score_class1"] for row in rows}, {0.5})
+        self.assertGreater(report["metrics"]["train"]["roc_auc_class1"], 0.5)
 
     def test_undefined_metrics_stay_unset(self):
         metrics = binary_metrics([0, 0, 0], [0, 1, 0], [0.1, 0.9, 0.2])
