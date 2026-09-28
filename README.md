@@ -2,6 +2,8 @@ Updating my master thesis work: agonist/antagonist classification of receptor li
 
 Everything runs in Podman containers; no host Python is needed. Plan: [docs/LOCAL_PIPELINE_PLAN.md](docs/LOCAL_PIPELINE_PLAN.md); status: [docs/progress.md](docs/progress.md); molecular protocol: [docs/protocol.md](docs/protocol.md).
 
+For the M4 local Kubernetes execution target, see [docs/local-setup.md](docs/local-setup.md). It includes two architecture/sequence diagrams, the kind/PVC/image-load commands, single-node storage limits, and the acceptance comparison procedure. The Kubernetes workflow is not considered verified until the cluster, molecular demo, and restart acceptance checks have actually passed.
+
 ## Setup (Windows, PowerShell)
 
 Install Podman, then once:
@@ -38,7 +40,7 @@ podman run --rm --network=none -v "${PWD}:/work:ro" -w /work -e PYTHONPATH=code/
 # against the working tree without rebuilding
 podman run --rm --network=none -v "${PWD}:/work:ro" -w /work -e PYTHONPATH=src:code/ml_protocol ligand-chem:dev python -m unittest discover -s tests -v
 # lint (configuration in pyproject.toml) and the Nextflow strict-syntax check
-podman run --rm -v "${PWD}:/io:ro" -w /io ghcr.io/astral-sh/ruff:0.16.9 check --no-cache src tests
+podman run --rm -v "${PWD}:/io:ro" -w /io ghcr.io/astral-sh/ruff:0.16.9 check --no-cache src tests scripts/k8s_compare.py
 podman run --rm -v "${PWD}:/mnt/w:ro" -w /mnt/w ligand-runner:dev nextflow lint main.nf workflow nextflow.config conf
 ```
 

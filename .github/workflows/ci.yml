@@ -28,7 +28,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Ruff
-        run: podman run --rm -v "$PWD:/io:ro" -w /io ghcr.io/astral-sh/ruff:0.16.9 check --no-cache --output-format=github src tests
+        run: podman run --rm -v "$PWD:/io:ro" -w /io ghcr.io/astral-sh/ruff:0.16.9 check --no-cache --output-format=github src tests scripts/k8s_compare.py
 
   test:
     runs-on: ubuntu-26.04
@@ -58,6 +58,13 @@ jobs:
         run: |
           podman run --rm --network=none -v "$PWD:$PWD:ro" -w "$PWD" ligand-runner:ci \
             nextflow lint main.nf workflow nextflow.config conf
+      - name: Kubernetes profile resolves offline
+        run: |
+          podman run --rm --network=none -v "$PWD:$PWD" -w "$PWD" ligand-runner:ci \
+            nextflow config -profile k8s -flat | grep -F "process.executor = 'k8s'"
+          podman run --rm --network=none -v "$PWD:$PWD:ro" -w "$PWD" ligand-runner:ci \
+            bash -n scripts/worktree-git.sh scripts/kind.sh scripts/k8s-storage-check.sh scripts/k8s-images.sh \
+              scripts/k8s-demo.sh scripts/k8s-acceptance.sh
       - name: Smoke test the CLIs outside the repository
         run: |
           podman run --rm --network=none ligand-ml:ci ligand-analysis synthetic-example --seed 0 --output-dir /tmp/out

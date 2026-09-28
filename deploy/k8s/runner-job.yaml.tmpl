@@ -1,0 +1,204 @@
+# Runner Job for the in-cluster Nextflow controller; rendered and applied by scripts/k8s-demo.sh.
+# Placeholders: __JOB_NAME__ (also the Nextflow run name), __MODE__ (run|resume), __GIT_REVISION__,
+# __RUNNER_IMAGE__, __RESUME__ ("" for a fresh run, "last", or a Nextflow session ID).
+# - init container "source": copies the revisioned launch files of the runner image into
+#   /workspace/projects/<revision> (k8s.launchDir) and verifies an existing copy instead of
+#   replacing it, so the .nextflow resume cache there survives Job and cluster recreation.
+#   A clean revision never replaces different launch files. A "-dirty" revision (uncommitted
+#   edits rebuilt under the same label) moves only the changed files to
+#   /workspace/projects-previous/<revision>-before-<job>. Unchanged files keep their mtimes,
+#   which key Nextflow's task cache, and the .nextflow resume history is kept.
+# - container "controller": runs Nextflow with the k8s profile; it alone receives the
+#   nextflow-runner API token. Task pods run as workflow-worker, which has no token.
+# No Podman socket, host path or credential other than that token is mounted.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: __JOB_NAME__
+  namespace: ligand-analysis
+  labels:
+    app.kubernetes.io/part-of: ligand-analysis
+    app.kubernetes.io/component: nextflow-controller
+    ligand-analysis/mode: __MODE__
+    ligand-analysis/git-revision: __GIT_REVISION__
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 2700
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: ligand-analysis
+        app.kubernetes.io/component: nextflow-controller
+        ligand-analysis/run: __JOB_NAME__
+    spec:
+      restartPolicy: Never
+      serviceAccountName: nextflow-runner
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 57439
+        runAsGroup: 57439
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: source
+          image: __RUNNER_IMAGE__
+          imagePullPolicy: Never
+          command: ["bash", "-euo", "pipefail", "-c"]
+          args:
+            - |
+              [ "$LIGAND_ANALYSIS_REVISION" = "$GIT_REVISION" ] || {
+                echo "runner image revision $LIGAND_ANALYSIS_REVISION is not $GIT_REVISION" >&2; exit 1; }
+              mkdir -p /workspace/projects /workspace/work /workspace/sources /workspace/results \
+                /workspace/nextflow-home "/workspace/logs/$RUN_NAME"
+              probe="/workspace/logs/$RUN_NAME/.writable"
+              : > "$probe" && rm -f "$probe" || { echo "/workspace is not writable by $(id -u):$(id -g)" >&2; exit 1; }
+              test -f /workspace/image-manifest.json || {
+                echo "missing /workspace/image-manifest.json (run scripts/k8s-images.sh load)" >&2; exit 1; }
+              launch="/workspace/projects/$GIT_REVISION"
+              # Copies the image's launch files that are missing from $1, then verifies all of them.
+              # Plain content copy: the volume may refuse chmod/chown (e.g. a Windows drive).
+              install_files() {
+                (cd /opt/ligand-analysis && find . -mindepth 1 -type d -exec mkdir -p "$1/{}" \; \
+                  && find . -type f -exec sh -c '[ -e "$2/$1" ] || cat "$1" > "$2/$1"' copy {} "$1" \;)
+                (cd "$1" && sha256sum --quiet --strict -c SOURCE.sha256) || {
+                  echo "launch files in $1 do not match the runner image" >&2; exit 1; }
+              }
+              if [ -e "$launch" ] && cmp -s /opt/ligand-analysis/SOURCE.sha256 "$launch/SOURCE.sha256"; then
+                (cd "$launch" && sha256sum --quiet --strict -c SOURCE.sha256) || {
+                  echo "$launch was modified after it was copied from the runner image" >&2; exit 1; }
+                echo "verified existing launch files in $launch"
+              elif [ -e "$launch" ]; then
+                case "$GIT_REVISION" in
+                  *-dirty) ;;
+                  *) echo "$launch holds different launch files than this image of clean revision $GIT_REVISION; refusing to replace them" >&2
+                     exit 1 ;;
+                esac
+                old="/workspace/projects-previous/$GIT_REVISION-before-$RUN_NAME"
+                mkdir -p "$old"
+                if [ -f "$launch/SOURCE.sha256" ]; then
+                  (cd "$launch" && { sed 's/^[0-9a-f]\{64\}  //' SOURCE.sha256; echo ./SOURCE.sha256; } \
+                    | while IFS= read -r f; do
+                      [ -e "$f" ] || continue
+                      cmp -s "$f" "/opt/ligand-analysis/$f" && continue
+                      mkdir -p "$old/$(dirname "$f")"
+                      mv "$f" "$old/$f"
+                      echo "replacing $f"
+                    done)
+                fi
+                install_files "$launch"
+                echo "replaced launch files of dirty revision $GIT_REVISION (earlier files in $old; resume history kept)"
+              else
+                staging="/workspace/projects/.$GIT_REVISION.$RUN_NAME"
+                rm -rf "$staging"
+                trap 'rm -rf "$staging"' EXIT
+                mkdir "$staging"
+                install_files "$staging"
+                mv -T "$staging" "$launch"
+                echo "copied launch files of revision $GIT_REVISION to $launch"
+              fi
+              : > "$launch/.writable" && rm -f "$launch/.writable" || { echo "$launch is not writable" >&2; exit 1; }
+              if [ "$MODE" = run ] && [ -e /workspace/results/adrb2-demo ]; then
+                mkdir -p /workspace/results/previous
+                mv -T /workspace/results/adrb2-demo "/workspace/results/previous/adrb2-demo-before-$RUN_NAME"
+                echo "kept earlier results in /workspace/results/previous/adrb2-demo-before-$RUN_NAME"
+              fi
+          env:
+            - name: GIT_REVISION
+              value: "__GIT_REVISION__"
+            - name: RUN_NAME
+              value: "__JOB_NAME__"
+            - name: MODE
+              value: "__MODE__"
+          resources:
+            requests: {cpu: 500m, memory: 256Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /workspace
+            - name: tmp
+              mountPath: /tmp
+      containers:
+        - name: controller
+          image: __RUNNER_IMAGE__
+          imagePullPolicy: Never
+          workingDir: /workspace/projects/__GIT_REVISION__
+          command: ["bash", "-euo", "pipefail", "-c"]
+          args:
+            - |
+              [ "$(pwd)" = "/workspace/projects/$GIT_REVISION" ] || { echo "unexpected launch dir $(pwd)" >&2; exit 1; }
+              resume=()
+              case "$RESUME" in
+                "") ;;
+                last) resume=(-resume) ;;
+                *) resume=(-resume "$RESUME") ;;
+              esac
+              exec nextflow -log "/workspace/logs/$RUN_NAME/nextflow.log" run main.nf \
+                -name "$RUN_NAME" -profile k8s -params-file configs/demo.yaml \
+                -work-dir /workspace/work "${resume[@]}" \
+                --sources_dir /workspace/sources --outdir /workspace/results/adrb2-demo \
+                --git_revision "$GIT_REVISION"
+          env:
+            - name: GIT_REVISION
+              value: "__GIT_REVISION__"
+            - name: RUN_NAME
+              value: "__JOB_NAME__"
+            - name: RESUME
+              value: "__RESUME__"
+            - name: NXF_HOME
+              value: /workspace/nextflow-home
+            - name: NXF_OFFLINE
+              value: "true"
+            - name: NXF_ANSI_LOG
+              value: "false"
+            - name: NXF_OPTS
+              value: "-Xms256m -Xmx640m"
+            - name: HOME
+              value: /tmp
+          resources:
+            requests: {cpu: "1", memory: 1Gi}
+            limits: {cpu: "1", memory: 1Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /workspace
+            - name: tmp
+              mountPath: /tmp
+            - name: api-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ligand-analysis-data
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+        # The same projection the kubelet would automount, limited to the controller container.
+        - name: api-token
+          projected:
+            defaultMode: 0444
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  expirationSeconds: 3607
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+              - downwardAPI:
+                  items:
+                    - path: namespace
+                      fieldRef:
+                        fieldPath: metadata.namespace

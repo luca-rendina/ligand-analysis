@@ -28,6 +28,32 @@ def stageConfig(sections) {
     return json
 }
 
+// Image IDs validated by scripts/k8s-images.sh (params.image_manifest), keyed by image tag.
+// The manifest must belong to this Git revision; without it the IDs come from Podman (M3).
+def manifestImageIds() {
+    if (!params.containsKey('image_manifest') || !params.image_manifest) {
+        return null
+    }
+    def manifest = new groovy.json.JsonSlurper().parse(file(params.image_manifest, checkIfExists: true).toFile())
+    if (manifest.git_revision != params.git_revision) {
+        error("Image manifest ${params.image_manifest} is for revision ${manifest.git_revision}, not ${params.git_revision}")
+    }
+    def ids = [:]
+    manifest.images.each { key, entry ->
+        // Bare hex, as scripts/k8s-images.sh writes it; a 'sha256:' prefix is accepted and removed.
+        def id = entry.id instanceof String ? entry.id.replaceFirst(/^sha256:/, '') : null
+        if (entry.revision != params.git_revision || !(id ==~ /[0-9a-f]{64}/)) {
+            error("Image manifest entry ${key} is not a validated image of revision ${params.git_revision}")
+        }
+        ids[entry.image] = id
+    }
+    def missing = params.containers.values().findAll { image -> !ids.containsKey(image) }
+    if (missing) {
+        error("Image manifest ${params.image_manifest} lacks the workflow image(s): ${missing.join(', ')}")
+    }
+    return ids
+}
+
 // Image ID of a container tag for the run record (null when no Podman client is available).
 def imageId(name) {
     try {
@@ -55,6 +81,7 @@ workflow {
     if (unknownClassifiers) {
         error("Unknown classifiers ${unknownClassifiers}; choose from ${classifiers}")
     }
+    def manifestIds = manifestImageIds()
     def configs = [
         ligand_preparation: stageConfig(['ligand_preparation']),
         docking: stageConfig(['docking']),
@@ -96,7 +123,11 @@ workflow {
         work_dir: workflow.workDir.toString(),
         start: workflow.start.toString(),
         git_revision: params.git_revision,
-        containers: params.containers.collectEntries { key, image -> [(key): [image: image, id: imageId(image)]] },
+        image_manifest: manifestIds == null ? null : params.image_manifest,
+        containers: params.containers.collectEntries { key, image ->
+            [(key): manifestIds == null ? [image: image, id: imageId(image), id_source: 'podman']
+                                        : [image: image, id: manifestIds[image], id_source: 'image-manifest']]
+        },
         config_file: workflow.commandLine.find('-params-file\\s+\\S+'),
         params: params,
     ]))).collectFile(name: 'run_metadata.json', newLine: true)

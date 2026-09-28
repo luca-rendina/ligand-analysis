@@ -1,9 +1,22 @@
-# Allowlist: only package sources and container specs enter image build contexts.
-# Data, caches, run outputs, Git metadata and local credentials stay out of image layers.
+# Allowlist: only package sources, container specs and the workflow launch files (bundled in
+# ligand-runner) enter image build contexts. Datasets (data/sources, data/local, DVC caches),
+# caches, run outputs, Git metadata and local credentials stay out of image layers.
 *
 !pyproject.toml
 !README.md
 !src/
 !containers/
+!main.nf
+!nextflow.config
+!conf/
+!workflow/
+!configs/
+!data/
+data/*
+!data/manifests/
 **/__pycache__
 **/*.pyc
+**/.env
+**/*.pem
+**/*.key
+**/.dvc/config.local

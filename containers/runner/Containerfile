@@ -1,8 +1,12 @@
 # Build context: repository root.
 #   podman build -f containers/runner/Containerfile -t ligand-runner:<git-sha> --build-arg REVISION=<git-sha> .
-# Runs the Nextflow controller. With the podman profile it starts task containers through the
-# host Podman service (socket mounted at /run/podman/podman.sock), so the project directory must
-# be mounted at the same absolute path that the Podman host sees (see scripts/nextflow.ps1).
+# Runs the Nextflow controller.
+# - podman profile: it starts task containers through the host Podman service (socket mounted at
+#   /run/podman/podman.sock), so the project directory must be mounted at the same absolute path
+#   that the Podman host sees (see scripts/nextflow.ps1).
+# - k8s profile: the runner Job (deploy/k8s/runner-job.yaml.tmpl) copies the launch files in
+#   /opt/ligand-analysis to the shared volume and submits every task as a Kubernetes Job. No
+#   Podman socket is mounted there.
 FROM docker.io/mambaorg/micromamba:2.9.0-debian13-slim@sha256:e0a99b0f17a759e14c2f967dc0ca2d3a3c1ca3c62955f4d20bba770eaaf0184d
 
 COPY --chown=$MAMBA_USER:$MAMBA_USER containers/runner/linux-64.lock /tmp/linux-64.lock
@@ -10,14 +14,49 @@ RUN micromamba install --yes --name base --file /tmp/linux-64.lock \
     && micromamba clean --all --yes \
     && rm /tmp/linux-64.lock
 
-ARG REVISION=unknown
-LABEL org.opencontainers.image.title="ligand-runner" \
-      org.opencontainers.image.description="Nextflow controller with a Podman client for ligand-analysis workflows" \
-      org.opencontainers.image.revision="$REVISION"
-# NXF_OFFLINE: no plugin or update downloads, so cached reruns need no network.
+# The Kubernetes executor is the nf-k8s plugin, which offline runs cannot download. Install the
+# version that this Nextflow release requests into an image directory outside NXF_HOME, so that
+# NXF_HOME can live on the persistent volume. Keep NF_K8S_VERSION in step with the Nextflow lock.
+ARG NF_K8S_VERSION=1.5.4
 ENV PATH=/opt/conda/bin:$PATH \
     JAVA_HOME=/opt/conda/lib/jvm \
-    NXF_OFFLINE=true \
+    NXF_PLUGINS_DIR=/opt/nextflow/plugins
+USER root
+RUN mkdir -p /opt/nextflow/plugins /opt/ligand-analysis \
+    && chown $MAMBA_USER:$MAMBA_USER /opt/nextflow/plugins /opt/ligand-analysis
+USER $MAMBA_USER
+RUN NXF_HOME=/tmp/nextflow-build-home nextflow plugin install "nf-k8s@${NF_K8S_VERSION}" \
+    && test -d "/opt/nextflow/plugins/nf-k8s-${NF_K8S_VERSION}" \
+    && rm -rf /tmp/nextflow-build-home
+
+# Workflow launch files only: no datasets, source snapshots, work directories or results.
+# SOURCE.sha256 lets the runner Job verify the copy it places on the shared volume.
+COPY --chown=$MAMBA_USER:$MAMBA_USER main.nf nextflow.config /opt/ligand-analysis/
+COPY --chown=$MAMBA_USER:$MAMBA_USER conf/ /opt/ligand-analysis/conf/
+COPY --chown=$MAMBA_USER:$MAMBA_USER workflow/ /opt/ligand-analysis/workflow/
+COPY --chown=$MAMBA_USER:$MAMBA_USER configs/ /opt/ligand-analysis/configs/
+COPY --chown=$MAMBA_USER:$MAMBA_USER data/manifests/ /opt/ligand-analysis/data/manifests/
+RUN cd /opt/ligand-analysis \
+    && find . -type f ! -name SOURCE.sha256 -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > SOURCE.sha256 \
+    && for f in main.nf nextflow.config conf/k8s.config; do \
+           grep -q "  \./$f\$" SOURCE.sha256 || { echo "SOURCE.sha256 lacks $f" >&2; exit 1; }; \
+       done \
+    && chmod -R a-w /opt/ligand-analysis
+
+# Offline self-test: the k8s profile must resolve its executor with the bundled plugin and no
+# network, as the controller does in the cluster (NXF_HOME on another volume).
+RUN --network=none cp -R /opt/ligand-analysis /tmp/nf-check && chmod -R u+w /tmp/nf-check \
+    && cd /tmp/nf-check \
+    && NXF_OFFLINE=true NXF_HOME=/tmp/nf-check-home nextflow config -profile k8s -flat > /tmp/nf-check.cfg \
+    && grep -qx "process.executor = 'k8s'" /tmp/nf-check.cfg \
+    && cd / && rm -rf /tmp/nf-check /tmp/nf-check-home /tmp/nf-check.cfg
+
+ARG REVISION=unknown
+LABEL org.opencontainers.image.title="ligand-runner" \
+      org.opencontainers.image.description="Nextflow controller (Podman client and nf-k8s executor) for ligand-analysis workflows" \
+      org.opencontainers.image.revision="$REVISION"
+# NXF_OFFLINE: no plugin or update downloads, so cached reruns need no network.
+ENV NXF_OFFLINE=true \
     NXF_ANSI_LOG=false \
     NXF_HOME=/tmp/nextflow-home \
     CONTAINER_HOST=unix:///run/podman/podman.sock \

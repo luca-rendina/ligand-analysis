@@ -1,0 +1,47 @@
+# Namespace-scoped permissions of the Nextflow controller (service account nextflow-runner).
+# Derived from the requests of the nf-k8s 1.5.4 client used by Nextflow 26.04 with
+# k8s.computeResourceType = 'Job': it creates task Jobs, polls jobs/<name>/status, lists the pods
+# of a Job (labelSelector=job-name), reads pods/<name>/status and pods/<name>/log, and on cleanup
+# deletes the Job's pods and then the Job. Events are readable for diagnostics. There is no
+# ClusterRole, no access to Secrets or ConfigMaps, and workflow-worker is bound to nothing.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nextflow-runner
+  namespace: ligand-analysis
+  labels:
+    app.kubernetes.io/part-of: ligand-analysis
+    app.kubernetes.io/component: nextflow-controller
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: ["batch"]
+    resources: ["jobs/status"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/status", "pods/log"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nextflow-runner
+  namespace: ligand-analysis
+  labels:
+    app.kubernetes.io/part-of: ligand-analysis
+    app.kubernetes.io/component: nextflow-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nextflow-runner
+subjects:
+  - kind: ServiceAccount
+    name: nextflow-runner
+    namespace: ligand-analysis

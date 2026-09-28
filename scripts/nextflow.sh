@@ -9,7 +9,7 @@ set -euo pipefail
 repo=$(cd "$(dirname "$0")/.." && pwd)
 socket=$(podman info --format '{{.Host.RemoteSocket.Path}}')
 socket=${socket#unix://}
-revision=$(git -C "$repo" describe --always --dirty 2>/dev/null || echo unknown)
+revision=${LIGAND_ANALYSIS_REVISION:-$(git -C "$repo" describe --always --dirty 2>/dev/null || echo unknown)}
 exec podman run --rm --user root --security-opt label=disable \
     -v "$socket:/run/podman/podman.sock" -v "$repo:$repo" -w "$repo" \
     localhost/ligand-runner:dev nextflow run main.nf "$@" --git_revision "$revision"

@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ligand-analysis-probe-writer-__PROBE_ID__
+  namespace: ligand-analysis
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  terminationGracePeriodSeconds: 5
+  securityContext:
+    runAsUser: __RUN_AS_USER__
+    runAsGroup: __RUN_AS_GROUP__
+  containers:
+    - name: writer
+      image: localhost/ligand-runner:dev
+      imagePullPolicy: Never
+      command:
+        - sh
+        - -ec
+      args:
+        - |
+          trap 'rm -f -- "$PROBE_FILE"' EXIT
+          mkdir -p /workspace/probe
+          printf '%s' "$PROBE_CONTENT" > "$PROBE_FILE"
+          test "$(id -u):$(id -g)" = "$PROBE_UID:$PROBE_GID" || {
+            echo "Probe runs as $(id -u):$(id -g), expected $PROBE_UID:$PROBE_GID" >&2; exit 1; }
+          ownership=$(stat -c '%u:%g' "$PROBE_FILE")
+          if [ "$ownership" = "$PROBE_UID:$PROBE_GID" ]; then
+            owner_mode=preserved
+          elif grep -Eq '^[^ ]+ /workspace 9p [^ ]*aname=drvfs' /proc/mounts; then
+            owner_mode=not-preserved-drvfs
+          else
+            echo "Probe file owner is $ownership, expected $PROBE_UID:$PROBE_GID" >&2; exit 1
+          fi
+          printf 'SHARED_STORAGE_WRITTEN uid_gid=%s:%s owner=%s ownership=%s\n' "$PROBE_UID" "$PROBE_GID" "$ownership" "$owner_mode"
+
+          trap 'exit 0' TERM INT
+          sleep 600 &
+          wait "$!"
+      env:
+        - name: PROBE_FILE
+          value: /workspace/probe/kind-storage-__PROBE_ID__
+        - name: PROBE_CONTENT
+          value: ligand-analysis-kind-storage-__PROBE_ID__
+        - name: PROBE_UID
+          value: "__RUN_AS_USER__"
+        - name: PROBE_GID
+          value: "__RUN_AS_GROUP__"
+      volumeMounts:
+        - name: ligand-analysis-data
+          mountPath: /workspace
+  volumes:
+    - name: ligand-analysis-data
+      persistentVolumeClaim:
+        claimName: ligand-analysis-data
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ligand-analysis-probe-reader-__PROBE_ID__
+  namespace: ligand-analysis
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  terminationGracePeriodSeconds: 5
+  securityContext:
+    runAsUser: __RUN_AS_USER__
+    runAsGroup: __RUN_AS_GROUP__
+  containers:
+    - name: reader
+      image: localhost/ligand-runner:dev
+      imagePullPolicy: Never
+      command:
+        - sh
+        - -ec
+      args:
+        - |
+          trap 'rm -f -- "$PROBE_FILE"' EXIT
+          attempt=0
+          until [ -f "$PROBE_FILE" ]; do
+            attempt=$((attempt + 1))
+            if [ "$attempt" -ge 90 ]; then
+              echo "Timed out waiting for shared probe file: $PROBE_FILE" >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          actual=$(cat "$PROBE_FILE")
+          test "$actual" = "$PROBE_CONTENT" || {
+            echo "Probe file content mismatch: '$actual'" >&2; exit 1; }
+          test "$(id -u):$(id -g)" = "$PROBE_UID:$PROBE_GID" || {
+            echo "Probe runs as $(id -u):$(id -g), expected $PROBE_UID:$PROBE_GID" >&2; exit 1; }
+          ownership=$(stat -c '%u:%g' "$PROBE_FILE")
+          if [ "$ownership" = "$PROBE_UID:$PROBE_GID" ]; then
+            owner_mode=preserved
+          elif grep -Eq '^[^ ]+ /workspace 9p [^ ]*aname=drvfs' /proc/mounts; then
+            owner_mode=not-preserved-drvfs
+          else
+            echo "Probe file owner is $ownership, expected $PROBE_UID:$PROBE_GID" >&2; exit 1
+          fi
+          printf 'SHARED_STORAGE_VERIFIED content=%s uid_gid=%s:%s ownership=%s\n' "$actual" "$PROBE_UID" "$PROBE_GID" "$owner_mode"
+
+      env:
+        - name: PROBE_FILE
+          value: /workspace/probe/kind-storage-__PROBE_ID__
+        - name: PROBE_CONTENT
+          value: ligand-analysis-kind-storage-__PROBE_ID__
+        - name: PROBE_UID
+          value: "__RUN_AS_USER__"
+        - name: PROBE_GID
+          value: "__RUN_AS_GROUP__"
+      volumeMounts:
+        - name: ligand-analysis-data
+          mountPath: /workspace
+  volumes:
+    - name: ligand-analysis-data
+      persistentVolumeClaim:
+        claimName: ligand-analysis-data

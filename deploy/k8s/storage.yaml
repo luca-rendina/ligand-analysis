@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ligand-analysis-data
+spec:
+  capacity:
+    storage: 50Gi
+  volumeMode: Filesystem
+  # RWX is used only by concurrent pods on this single kind node; it is not multi-node sharing.
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-kind-hostpath
+  claimRef:
+    namespace: ligand-analysis
+    name: ligand-analysis-data
+  hostPath:
+    path: /mnt/ligand-analysis
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - ligand-analysis-control-plane
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ligand-analysis-data
+  namespace: ligand-analysis
+spec:
+  accessModes:
+    - ReadWriteMany
+  volumeMode: Filesystem
+  storageClassName: local-kind-hostpath
+  volumeName: ligand-analysis-data
+  resources:
+    requests:
+      storage: 50Gi
